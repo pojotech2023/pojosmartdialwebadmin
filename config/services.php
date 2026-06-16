@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'firebase' => [
+        'credentials' => env('FIREBASE_CREDENTIALS', base_path('google-services.json')),
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'database_url' => env('FIREBASE_DATABASE_URL'),
+    ],
+
 ];

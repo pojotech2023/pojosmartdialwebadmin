@@ -1,39 +1,17 @@
 <?php
 
 namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
+use App\Models\AssignBase;
+use App\Models\Notification;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\AssignBaseExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-    // ---------- REGISTER ----------
-
-    public function showRegisterForm()
-    {
-        return view('auth.register');
-    }
-
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'password' => 'required|min:6|confirmed',
-        ]);
-
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        return redirect('/login')->with('success', 'Registered successfully! Please login.');
-
-    }
-
     // ---------- LOGIN ----------
 
     // Show login page
@@ -42,30 +20,27 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    // Handle login submit
+    // Handle login
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email'    => 'required|string',
+            'email'    => 'required|email',
             'password' => 'required|string',
         ]);
 
-        // Try login using email
-        if (Auth::attempt([
-            'email'    => $credentials['email'],
-            'password' => $credentials['password'],
-        ], $request->boolean('remember'))) {
-
+        if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect()->intended('/');   // after login go to home
+
+            // Redirect to dashboard after login
+            return redirect()->route('dashboard');
         }
 
         return back()->withErrors([
             'email' => 'Invalid email or password.',
-        ])->onlyInput('email');
+        ]);
     }
 
-    // Logout
+    // ---------- LOGOUT ----------
     public function logout(Request $request)
     {
         Auth::logout();
@@ -76,18 +51,150 @@ class AuthController extends Controller
         return redirect('/login');
     }
 
-    public function dashboard()
-    {
-        $currentUserId = auth()->id();
+    // ---------- DASHBOARD ----------
+    public function dashboard(Request $request)
+{
+    // Employee dropdown
+    $employees = User::orderBy('name')->pluck('name', 'id');
 
-        // Take latest 5 users EXCLUDING the logged-in user
-        $users = User::where('id', '!=', $currentUserId)
-                    ->orderBy('created_at', 'desc')
-                    ->take(5)
-                    ->get();
+    // ================= CARD COUNTS (ALL EMPLOYEES) =================
+    $cardData = User::leftJoin('assign_bases', 'users.id', '=', 'assign_bases.emp_id')
+        ->select(
+            'users.id',
+            'users.name',
+            \DB::raw('COUNT(assign_bases.id) as total')
+        )
+        ->groupBy('users.id', 'users.name')
+        ->orderBy('users.name')
+        ->get();
 
-        return view('dashboard', compact('users'));
+    // ================= TABLE DATA =================
+    $query = AssignBase::query();
+
+    if ($request->filled('employee_id')) {
+        $query->where('emp_id', $request->employee_id);
     }
 
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    if ($request->filled('from_date')) {
+        $query->whereDate('assign_date', '>=', $request->from_date);
+    }
+
+    if ($request->filled('to_date')) {
+        $query->whereDate('assign_date', '<=', $request->to_date);
+    }
+
+    // ✅ PAGINATION (IMPORTANT)
+    $paginatedRows = $query
+        ->orderBy('assign_date', 'desc')
+        ->paginate(20)
+        ->withQueryString();
+
+    return view('dashboard', compact(
+        'employees',
+        'paginatedRows',
+        'cardData'
+    ));
+}
+
+    // ---------- NOTIFICATIONS DATA (JSON) ----------
+    public function notificationsData(Request $request)
+    {
+        try {
+        $now = Carbon::now();
+
+        $query = Notification::with(['employee', 'assignBase'])
+            ->orderBy('notification_date', 'asc')
+            ->orderBy('notification_time', 'asc');
+
+        if ($request->filled('assign_base_id')) {
+            $query->where('assign_base_id', $request->assign_base_id);
+        }
+
+        $all = $query->get();
+
+        $due    = [];
+        $upcoming = [];
+        $history  = [];
+
+        foreach ($all as $n) {
+            if (!$n->notification_date) continue;
+            $notifDatetime = Carbon::parse($n->notification_date->format('Y-m-d') . ' ' . ($n->notification_time ?? '00:00'));
+            $row = [
+                'id'                => $n->id,
+                'employee_name'     => $n->employee?->name ?? 'Unknown',
+                'customer_name'     => $n->assignBase?->customer_name ?? '—',
+                'company_name'      => $n->assignBase?->company_name ?? '—',
+                'mobile'            => $n->assignBase?->mobile ?? '—',
+                'notification_date' => $n->notification_date ? $n->notification_date->format('d/m/Y') : '—',
+                'notification_time' => $n->notification_time ?? '—',
+                'remarks'           => $n->remarks ?? '',
+                'is_sent'           => $n->is_sent,
+                'datetime_epoch'    => $notifDatetime->timestamp,
+            ];
+
+            if ($n->is_sent) {
+                $history[] = $row;
+            } elseif ($notifDatetime->lte($now)) {
+                $due[] = $row;
+            } else {
+                $upcoming[] = $row;
+            }
+        }
+
+        // Sort history newest first
+        usort($history, fn($a, $b) => $b['datetime_epoch'] - $a['datetime_epoch']);
+
+        return response()->json([
+            'due'       => $due,
+            'upcoming'  => $upcoming,
+            'history'   => $history,
+            'due_count' => count($due),
+        ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    // ---------- MARK NOTIFICATION SEEN ----------
+    public function markNotificationSeen(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (!empty($ids)) {
+            Notification::whereIn('id', $ids)->update(['is_sent' => true]);
+        }
+        return response()->json(['status' => true]);
+    }
+
+    // ---------- EXPORT DASHBOARD DATA ----------
+    public function exportDashboard(Request $request)
+    {
+        $query = AssignBase::with(['employee', 'loanApplication']);
+
+        if ($request->filled('employee_id') && $request->employee_id != '') {
+            $query->where('emp_id', $request->employee_id);
+        }
+
+        if ($request->filled('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('from_date') && $request->from_date != '') {
+            $query->whereDate('assign_date', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date') && $request->to_date != '') {
+            $query->whereDate('assign_date', '<=', $request->to_date);
+        }
+
+        $data = $query->orderBy('assign_date', 'desc')->get();
+
+        $fileName = 'dashboard_data_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+
+        return Excel::download(new AssignBaseExport($data), $fileName);
+    }
 
 }

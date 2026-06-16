@@ -5,9 +5,17 @@
     <title>Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!-- Font Awesome (Eye icon) -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
 
         body {
             background-color: #f5f7fb;
@@ -50,13 +58,12 @@
 
         .input {
             width: 100%;
-            padding: 11px 12px;
+            padding: 11px 38px 11px 12px;
             border-radius: 8px;
             border: 1px solid #d1d5db;
             font-size: 14px;
             background-color: #f9fafb;
             outline: none;
-            transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
         }
 
         .input:focus {
@@ -68,23 +75,14 @@
         .show-toggle {
             position: absolute;
             top: 50%;
-            right: 10px;
+            right: 12px;
             transform: translateY(-50%);
-            font-size: 12px;
-            color: #2563eb;
             cursor: pointer;
-            user-select: none;
         }
 
-        .forgot {
-            text-align: right;
-            font-size: 11px;
-            margin-top: 4px;
-        }
-
-        .forgot a {
+        .show-toggle i {
+            font-size: 14px;
             color: #2563eb;
-            text-decoration: none;
         }
 
         .btn-primary {
@@ -104,56 +102,6 @@
             background: #1d4ed8;
         }
 
-        .otp-link {
-            text-align: center;
-            margin-top: 8px;
-            font-size: 12px;
-        }
-
-        .otp-link a {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 16px 0 10px;
-            font-size: 11px;
-            color: #9ca3af;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: #e5e7eb;
-        }
-
-        .google-btn {
-            width: 100%;
-            border-radius: 999px;
-            border: 1px solid #d1d5db;
-            padding: 9px 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 13px;
-            cursor: pointer;
-            background: #ffffff;
-        }
-
-        .google-circle {
-            width: 18px;
-            height: 18px;
-            border-radius: 999px;
-            border: 2px solid #2563eb;
-        }
-
         .alert-error {
             background: #fef2f2;
             border: 1px solid #f87171;
@@ -170,7 +118,7 @@
 <div class="card">
     <div class="title">Login</div>
 
-    {{-- Login errors --}}
+    {{-- Error message --}}
     @if($errors->any())
         <div class="alert-error">
             @foreach($errors->all() as $error)
@@ -182,20 +130,20 @@
     <form method="POST" action="{{ route('login.post') }}">
         @csrf
 
-        {{-- Email --}}
+        <!-- Email -->
         <div class="field">
-            <label class="label">Email ID / Username</label>
+            <label class="label">Email ID</label>
             <div class="input-wrapper">
                 <input class="input"
-                       type="text"
+                       type="email"
                        name="email"
                        value="{{ old('email') }}"
-                       placeholder="Enter Email ID / Username"
+                       placeholder="Enter email ID"
                        required>
             </div>
         </div>
 
-        {{-- Password --}}
+        <!-- Password -->
         <div class="field">
             <label class="label">Password</label>
             <div class="input-wrapper">
@@ -203,45 +151,34 @@
                        type="password"
                        id="password"
                        name="password"
-                       placeholder="Enter Password"
+                       placeholder="Enter password"
                        required>
-                <span class="show-toggle" onclick="togglePassword()">Show</span>
-            </div>
-            <div class="forgot">
-                <a href="#">Forgot Password?</a>
+                <span class="show-toggle" onclick="togglePassword()">
+                    <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                </span>
             </div>
         </div>
 
-        {{-- Login button --}}
+        <!-- Login Button -->
         <button type="submit" class="btn-primary">
             Login
         </button>
-
-        <div class="otp-link">
-            <a href="#">Use OTP to Login</a>
-        </div>
     </form>
-
-    <div class="divider">
-        Or
-    </div>
-
-    <button type="button" class="google-btn">
-        <span class="google-circle"></span>
-        <span>Sign in with Google</span>
-    </button>
 </div>
 
 <script>
     function togglePassword() {
         const input = document.getElementById('password');
-        const toggle = document.querySelector('.show-toggle');
+        const icon = document.getElementById('eyeIcon');
+
         if (input.type === 'password') {
             input.type = 'text';
-            toggle.textContent = 'Hide';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
         } else {
             input.type = 'password';
-            toggle.textContent = 'Show';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
         }
     }
 </script>
