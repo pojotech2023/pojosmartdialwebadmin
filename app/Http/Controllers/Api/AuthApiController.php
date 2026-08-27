@@ -405,6 +405,71 @@ class AuthApiController extends Controller
         }
     }
 
+    public function whatsappNotificationsData(Request $request)
+    {
+        try {
+            $request->validate([
+                'emp_id'         => 'required|integer|exists:users,id',
+                'assign_base_id' => 'required|integer|exists:assign_bases,id',
+            ]);
+
+            $assignBase = AssignBase::where('id', $request->assign_base_id)
+                ->where('emp_id', $request->emp_id)
+                ->first();
+
+            if (!$assignBase) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'This customer is not assigned to the specified employee',
+                ], 404);
+            }
+
+            $contact = \App\Models\WhatsappContact::where('mobile', $assignBase->mobile)->first();
+
+            $items = [];
+
+            if ($contact) {
+                $recipients = \App\Models\WhatsappNotificationRecipient::with('notification')
+                    ->where('whatsapp_contact_id', $contact->id)
+                    ->orderByDesc('id')
+                    ->get();
+
+                foreach ($recipients as $recipient) {
+                    $notification = $recipient->notification;
+                    if (!$notification) continue;
+
+                    $params = $notification->template_params ?? [];
+
+                    $items[] = [
+                        'id'           => $recipient->id,
+                        'amount'       => $params[0] ?? null,
+                        'due_date'     => $params[1] ?? null,
+                        'header_image' => $notification->header_image_path
+                            ? Storage::disk('public')->url($notification->header_image_path)
+                            : null,
+                        'scheduled_at' => $notification->scheduled_at ? $notification->scheduled_at->format('d/m/Y H:i') : '—',
+                        'status'       => $recipient->status,
+                        'error'        => $recipient->error_message,
+                    ];
+                }
+            }
+
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'customer_name' => $assignBase->customer_name,
+                    'mobile'        => $assignBase->mobile,
+                    'items'         => $items,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function createNotification(Request $request)
     {
         try {

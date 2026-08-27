@@ -15,6 +15,7 @@ Route::post('/register-device-token', [AuthApiController::class, 'registerDevice
 Route::post('/send-push-notification', [AuthApiController::class, 'sendPushNotification']);
 Route::post('/schedule-notification', [AuthApiController::class, 'sendScheduledNotification']);
 Route::post('/schedule-whatsapp-notification', [AuthApiController::class, 'scheduleWhatsappNotification']);
+Route::post('/whatsapp-notifications-data', [AuthApiController::class, 'whatsappNotificationsData']);
 Route::post('/process-scheduled-whatsapp-notifications', [AuthApiController::class, 'processScheduledWhatsappNotifications']);
 Route::post('/process-scheduled-notifications', [AuthApiController::class, 'processScheduledNotifications']);
 Route::get('/get-notification/{assignBaseId}', [AuthApiController::class, 'getNotification']);
