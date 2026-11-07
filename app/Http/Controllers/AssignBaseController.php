@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\AssignBaseImport;
 use App\Models\User;
 use App\Models\AssignBase;
+use App\Models\Product;
 use Carbon\Carbon;
 
 class AssignBaseController extends Controller
@@ -18,12 +19,20 @@ class AssignBaseController extends Controller
         // Employees dropdown
         $employees = User::orderBy('name')->pluck('name', 'id');
 
+        // Products dropdown
+        $products = Product::where('is_active', true)->orderBy('name')->pluck('name', 'id');
+
         // Base DB query
-        $query = AssignBase::query();
+        $query = AssignBase::with(['employee', 'product']);
 
         /* ========== EMPLOYEE FILTER ========== */
         if ($request->filled('employee_id')) {
             $query->where('emp_id', $request->employee_id);
+        }
+
+        /* ========== PRODUCT TYPE FILTER ========== */
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
         }
 
         /* ========== STATUS FILTER ========== */
@@ -48,6 +57,7 @@ class AssignBaseController extends Controller
 
         return view('assign-base.index', compact(
             'employees',
+            'products',
             'paginatedRows'
         ));
     }

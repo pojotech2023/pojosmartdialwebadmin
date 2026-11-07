@@ -1,47 +1,11 @@
 @extends('layouts.app')
 
+@section('page-title', 'Add Employee')
+
 @section('content')
 
-<!-- Font Awesome -->
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
+@push('styles')
 <style>
-    body {
-        background-color: #f5f7fb;
-    }
-
-    .page-title {
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 6px;
-    }
-
-    .page-subtitle {
-        color: #6b7280;
-        font-size: 13px;
-        margin-bottom: 18px;
-    }
-
-    .card-box {
-        background: #ffffff;
-        border-radius: 16px;
-        padding: 22px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-        width: 98%;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-    }
-
-    td {
-        padding: 12px 8px;
-        vertical-align: middle;
-    }
-
     td.label {
         width: 35%;
         font-weight: 600;
@@ -50,26 +14,11 @@
         border-radius: 6px;
     }
 
-    .input-wrap {
-        position: relative;
-        width: 100%;
-    }
+    td input { width: 100%; }
 
-    input {
-        width: 100%;
-        box-sizing: border-box;          
-        padding: 9px 32px 9px 10px;      
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        outline: none;
-        font-size: 14px;
-    }
+    .input-wrap { position: relative; width: 100%; }
 
-
-    input:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 1px rgba(37,99,235,0.2);
-    }
+    .input-wrap input { padding-right: 34px; }
 
     .eye-icon {
         position: absolute;
@@ -77,32 +26,11 @@
         right: 12px;
         transform: translateY(-50%);
         cursor: pointer;
-        color: #2563eb;
+        color: var(--primary);
         font-size: 14px;
-    }
-
-    .btn-save {
-        background: #2563eb;
-        color: #fff;
-        border: none;
-        padding: 9px 18px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-    .btn-cancel {
-        background: #e5e7eb;
-        color: #111827;
-        border: none;
-        padding: 9px 18px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        margin-left: 8px;
     }
 </style>
+@endpush
 
 <div class="page-title">Add Employee</div>
 <div class="page-subtitle">Fill in employee details below</div>

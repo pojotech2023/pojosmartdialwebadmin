@@ -75,9 +75,9 @@
 }
 
 .pagination li.active a {
-    background: #2563eb;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
     color: #ffffff;
-    border-color: #2563eb;
+    border-color: #4f46e5;
 }
 
 .pagination li.disabled span,
@@ -88,6 +88,6 @@
 }
 
 .pagination li a:hover {
-    background: #eff6ff;
+    background: #eef2ff;
 }
 </style>

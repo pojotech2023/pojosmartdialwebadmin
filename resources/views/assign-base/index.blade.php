@@ -1,108 +1,8 @@
 @extends('layouts.app')
 
+@section('page-title', 'Assign Base')
+
 @section('content')
-
-<style>
-    body {
-        background-color: #f5f7fb;
-    }
-
-    .page-title {
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 6px;
-    }
-
-    .page-subtitle {
-        color: #6b7280;
-        font-size: 13px;
-        margin-bottom: 18px;
-    }
-
-    .card-box {
-        background: #ffffff;
-        border-radius: 16px;
-        padding: 22px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-        width: 98%;
-    }
-
-    .form-label {
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        display: block;
-        color: #374151;
-    }
-
-    input[type="file"],
-    input[type="date"],
-    select {
-        padding: 8px;
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        font-size: 13px;
-        background: #f9fafb;
-    }
-    
-
-    .btn-upload {
-        background: #2563eb;
-        color: #ffffff;
-        border: none;
-        padding: 9px 18px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-    .btn-cancel-small {
-        background: #ef4444;
-        color: #ffffff;
-        border: none;
-        padding: 8px 14px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    .btn-cancel-small:hover {
-        background: #dc2626;
-    }
-
-    .success-msg {
-        background: #ecfdf5;
-        color: #065f46;
-        border: 1px solid #10b981;
-        padding: 8px 10px;
-        border-radius: 8px;
-        font-size: 12px;
-        margin-bottom: 12px;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-    }
-
-    th, td {
-        padding: 8px;
-        text-align: left;
-    }
-
-    thead {
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    tbody tr {
-        border-bottom: 1px solid #f1f5f9;
-    }
-</style>
 
 <div class="page-title">Assign Base</div>
 <div class="page-subtitle">
@@ -167,6 +67,19 @@
             </select>
         </div>
 
+        {{-- Product Type --}}
+        <div>
+            <label class="form-label">Product Type</label>
+            <select name="product_id">
+                <option value="">All Products</option>
+                @foreach($products as $pId => $pName)
+                    <option value="{{ $pId }}" {{ request('product_id') == $pId ? 'selected' : '' }}>
+                        {{ $pName }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
         {{-- From Date --}}
         <div>
             <label class="form-label">From Date</label>
@@ -186,16 +99,16 @@
         </div>
 
 
-        <button type="submit" class="btn-upload">Filter</button>
+        <button type="submit" class="btn-upload"><i class="fas fa-filter"></i> Filter</button>
         <button type="submit"
                 name="action"
                 value="delete"
                 class="btn-cancel-small"
                 onclick="return confirm('Are you sure you want to delete filtered records?')">
-            Delete
+            <i class="fas fa-trash"></i> Delete
         </button>
         <a href="{{ route('assign-base.index') }}" class="btn-cancel-small">
-            Cancel
+            <i class="fas fa-rotate-left"></i> Cancel
         </a>
 
     </div>
@@ -214,6 +127,7 @@
                 <th>Emp ID</th>
                 <th>Customer Name</th>
                 <th>Company Name</th>
+                <th>Product Type</th>
                 <th>Status</th>
                 <th>Mobile</th>
                 <th>Date</th>
@@ -227,7 +141,16 @@
                     <td>{{ $row->emp_id }}</td>
                     <td>{{ $row->customer_name }}</td>
                     <td>{{ $row->company_name }}</td>
-                    <td>{{ $row->status ?? 'NEW' }}</td>
+                    <td>
+                        @if($row->product || $row->product_type)
+                            <span style="background:#eef2ff;color:#4338ca;padding:3px 9px;border-radius:12px;font-size:11.5px;font-weight:700;">
+                                <i class="fas fa-tag" style="font-size:10px;margin-right:3px;"></i> {{ $row->product->name ?? $row->product_type }}
+                            </span>
+                        @else
+                            <span style="color:#94a3b8;font-size:12px;">—</span>
+                        @endif
+                    </td>
+                    <td><span class="status-badge status-{{ \Illuminate\Support\Str::slug($row->status ?? 'NEW') }}">{{ $row->status ?? 'NEW' }}</span></td>
                     <td>{{ $row->mobile }}</td>
                     <td>{{ \Carbon\Carbon::parse($row->assign_date)->format('d/m/Y') }}</td>
 
@@ -241,10 +164,8 @@
 
                             <input type="hidden" name="id" value="{{ $row->id }}">
 
-                            <button type="submit"
-                                    class="btn-cancel-small"
-                                    style="padding:4px 10px;font-size:12px;">
-                                Delete
+                            <button type="submit" class="icon-btn icon-btn-delete" title="Delete">
+                                <i class="fas fa-trash"></i>
                             </button>
                         </form>
                     </td>

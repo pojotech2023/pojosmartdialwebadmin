@@ -41,4 +41,24 @@ return [
         'database_url' => env('FIREBASE_DATABASE_URL'),
     ],
 
+    'whatsapp' => [
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'business_account_id' => env('WHATSAPP_BUSINESS_ACCOUNT_ID'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v20.0'),
+        // The single approved WhatsApp template used for all notifications.
+        'template_name' => env('WHATSAPP_TEMPLATE_NAME', 'payment_reminder'),
+        'template_language' => env('WHATSAPP_TEMPLATE_LANGUAGE', 'en'),
+
+        // Labels for the template's placeholders EXCLUDING the customer name
+        // (that one is auto-filled per recipient from whatsapp_contacts.name).
+        // e.g. payment_reminder is "Hi {{1}}, ... ₹{{2}} ... on {{3}}" ->
+        // {{1}} = contact name (auto), {{2}} and {{3}} = these labels below.
+        'template_param_labels' => ['Amount (₹)', 'Due Date'],
+
+        // Zero-based position of the customer name placeholder within the
+        // template's full parameter list.
+        'name_param_index' => 0,
+    ],
+
 ];

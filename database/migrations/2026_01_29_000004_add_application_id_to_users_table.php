@@ -7,10 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->unsignedBigInteger('application_id')->nullable()->after('id');
-            $table->foreign('application_id')->references('id')->on('applications')->onDelete('set null');
-        });
+        if (Schema::hasTable('users') && !Schema::hasColumn('users', 'application_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->unsignedBigInteger('application_id')->nullable()->after('id');
+                if (Schema::hasTable('applications')) {
+                    $table->foreign('application_id')->references('id')->on('applications')->onDelete('set null');
+                }
+            });
+        }
     }
 
     public function down()

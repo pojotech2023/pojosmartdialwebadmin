@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AssignBaseController;
+use App\Http\Controllers\WhatsappNotificationController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Api\AuthApiController;
 
 /*
@@ -40,6 +43,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/notifications-data', [AuthController::class, 'notificationsData'])
         ->name('dashboard.notifications.data');
 
+    Route::get('/dashboard/whatsapp-notifications-data', [AuthController::class, 'whatsappNotificationsData'])
+        ->name('dashboard.whatsapp-notifications.data');
+
     Route::post('/dashboard/notifications/mark-seen', [AuthController::class, 'markNotificationSeen'])
         ->name('dashboard.notifications.mark-seen');
 
@@ -53,6 +59,26 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/assign-base/delete', [AssignBaseController::class, 'delete'])
         ->name('assign-base.delete');
+
+    Route::get('/whatsapp', [WhatsappNotificationController::class, 'index'])
+        ->name('whatsapp.index');
+
+    Route::post('/whatsapp/import', [WhatsappNotificationController::class, 'import'])
+        ->name('whatsapp.import');
+
+    Route::post('/whatsapp/schedule', [WhatsappNotificationController::class, 'store'])
+        ->name('whatsapp.store');
+
+    Route::delete('/whatsapp/contact/delete', [WhatsappNotificationController::class, 'deleteContact'])
+        ->name('whatsapp.contact.delete');
+
+    Route::get('/calendar', [CalendarController::class, 'index'])
+        ->name('calendar.index');
+
+    Route::get('/calendar/events', [CalendarController::class, 'events'])
+        ->name('calendar.events');
+
+    Route::resource('/products', ProductController::class)->except(['create', 'show', 'edit']);
 
 });
 

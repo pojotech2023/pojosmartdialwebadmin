@@ -1,84 +1,44 @@
 
 @extends('layouts.app')
 
+@section('page-title', 'Loan Application Details')
+
 @section('content')
 <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>Loan Application Details</h2>
-        <a href="{{ route('dashboard') }}" style="background: #ef4444; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none;">← Back to Dashboard</a>
+    <div class="top-bar">
+        <div class="page-title" style="margin-bottom:0;">Loan Application Details</div>
+        <a href="{{ route('dashboard') }}" class="btn-cancel-small"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
     </div>
 
+    @push('styles')
     <style>
-        body { background-color: #f5f7fb; }
-        .card-box {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 22px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        th, td {
-            padding: 12px 8px;
-            text-align: left;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        thead th {
-            font-weight: 600;
-            color: #374151;
-            background: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        tbody tr:nth-child(even) {
-            background: #f9fafb;
-        }
-        tbody tr:hover {
-            background: #f3f4f6;
-        }
+        tbody tr:nth-child(even) { background: #f9fafb; }
         .section-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             color: #1f2937;
             margin-bottom: 16px;
             border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 8px;
+            padding-bottom: 10px;
         }
-        .badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
+        .badge-success { background: var(--success); color: white; }
+        .badge-primary { background: var(--primary); color: white; }
+        .file-link {
+            color: var(--primary);
+            text-decoration: none;
             font-weight: 600;
         }
-        .badge-success {
-            background: #10b981;
-            color: white;
-        }
-        .badge-primary {
-            background: #2563eb;
-            color: white;
-        }
-        .file-link {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .file-link:hover {
-            text-decoration: underline;
-        }
+        .file-link:hover { text-decoration: underline; }
         .alert {
             padding: 15px;
             margin-bottom: 20px;
             border: 1px solid #bee5eb;
-            border-radius: 8px;
+            border-radius: 12px;
             background-color: #d1ecf1;
             color: #0c5460;
         }
     </style>
+    @endpush
 
     @if($loanApplication)
     <!-- Customer & Loan Information Table -->

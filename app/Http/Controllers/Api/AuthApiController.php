@@ -217,11 +217,21 @@ class AuthApiController extends Controller
         $assignDate = Carbon::createFromFormat('d/m/Y', $request->assign_date)->format('Y-m-d');
 
         // Query with filter: emp_id, assign_date, and status = 'NEW'
-        $data = AssignBase::where('emp_id', $request->emp_id)
+        $data = AssignBase::with('product')
+            ->where('emp_id', $request->emp_id)
             ->where('assign_date', '=', $assignDate)
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
-            ->selectRaw("id, customer_name, company_name, status, mobile, DATE_FORMAT(assign_date, '%d/%m/%Y') as date")
-            ->get();
+            ->get()
+            ->map(fn($row) => [
+                'id'            => $row->id,
+                'customer_name' => $row->customer_name,
+                'company_name'  => $row->company_name,
+                'product_id'    => $row->product_id,
+                'product_type'  => $row->product?->name ?? $row->product_type,
+                'status'        => $row->status,
+                'mobile'        => $row->mobile,
+                'date'          => Carbon::parse($row->assign_date)->format('d/m/Y'),
+            ]);
 
         return response()->json([
             'status' => true,
@@ -288,6 +298,8 @@ class AuthApiController extends Controller
                 'emp_id'       => 'required|integer|exists:users,id',
                 'name'         => 'required|string',
                 'company_name' => 'required|string',
+                'product_id'   => 'nullable|integer|exists:products,id',
+                'product_type' => 'nullable|string',
                 'status'       => 'required|in:NEW,CONFIRMED,FOLLOW UP,NOPE',
                 'mobile'       => 'required|string',
                 'date'         => 'required|date_format:d/m/Y',
@@ -302,17 +314,34 @@ class AuthApiController extends Controller
                 ], 404);
             }
 
+            // Determine product_id and product_type
+            $productId = $request->input('product_id');
+            $productType = $request->input('product_type');
+
+            if ($productId && !$productType) {
+                $p = \App\Models\Product::find($productId);
+                $productType = $p?->name;
+            } elseif ($productType && !$productId) {
+                $p = \App\Models\Product::firstOrCreate(
+                    ['name' => trim($productType)],
+                    ['is_active' => true]
+                );
+                $productId = $p->id;
+            }
+
             // Parse date to Y-m-d format
             $assignDate = Carbon::createFromFormat('d/m/Y', $request->date)->format('Y-m-d');
 
             // Create new customer
             $customer = AssignBase::create([
-                'emp_id'       => $request->emp_id,
+                'emp_id'        => $request->emp_id,
                 'customer_name' => $request->name,
-                'company_name' => $request->company_name,
-                'status'       => $request->status,
-                'mobile'       => $request->mobile,
-                'assign_date'  => $assignDate,
+                'company_name'  => $request->company_name,
+                'product_id'    => $productId,
+                'product_type'  => $productType,
+                'status'        => $request->status,
+                'mobile'        => $request->mobile,
+                'assign_date'   => $assignDate,
             ]);
 
             return response()->json([
@@ -323,10 +352,172 @@ class AuthApiController extends Controller
                     'emp_id'         => $customer->emp_id,
                     'customer_name'  => $customer->customer_name,
                     'company_name'   => $customer->company_name,
+                    'product_id'     => $customer->product_id,
+                    'product_type'   => $customer->product_type,
                     'status'         => $customer->status,
                     'mobile'         => $customer->mobile,
                     'assign_date'    => Carbon::parse($customer->assign_date)->format('d/m/Y'),
                 ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile API to fetch active products for dropdown list
+     */
+    public function getProducts(Request $request)
+    {
+        try {
+            $products = \App\Models\Product::where('is_active', true)
+                ->orderBy('name')
+                ->select('id', 'name', 'description')
+                ->get();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Products fetched successfully',
+                'data'    => $products,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function scheduleWhatsappNotification(Request $request)
+    {
+        try {
+            $request->validate([
+                'emp_id'          => 'required|integer|exists:users,id',
+                'assign_base_id'  => 'required|integer|exists:assign_bases,id',
+                'amount'          => 'required|numeric',
+                'due_date'        => 'required|date_format:d/m/Y',
+                'scheduled_date'  => 'required|date_format:d/m/Y',
+                'scheduled_time'  => 'required|date_format:H:i',
+                'header_image'    => 'required|file|image|mimes:jpg,jpeg,png|max:5120',
+            ]);
+
+            $assignBase = AssignBase::where('id', $request->assign_base_id)
+                ->where('emp_id', $request->emp_id)
+                ->first();
+
+            if (!$assignBase) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'This customer is not assigned to the specified employee',
+                ], 404);
+            }
+
+            $contact = \App\Models\WhatsappContact::firstOrCreate(
+                ['mobile' => $assignBase->mobile],
+                ['name' => $assignBase->customer_name]
+            );
+
+            $headerImagePath = $request->file('header_image')->store('whatsapp/headers', 'public');
+
+            $scheduledAt = Carbon::createFromFormat('d/m/Y H:i', $request->scheduled_date . ' ' . $request->scheduled_time);
+            $dueDate = Carbon::createFromFormat('d/m/Y', $request->due_date)->format('d/m/Y');
+
+            $notification = \App\Models\WhatsappNotification::create([
+                'emp_id'            => $request->emp_id,
+                'assign_base_id'    => $request->assign_base_id,
+                'template_name'     => config('services.whatsapp.template_name'),
+                'template_language' => config('services.whatsapp.template_language'),
+                'template_params'   => [$request->amount, $dueDate],
+                'header_image_path' => $headerImagePath,
+                'source'            => 'mobile',
+                'target_type'       => 'selected',
+                'scheduled_at'      => $scheduledAt,
+                'status'            => 'pending',
+            ]);
+
+            \App\Models\WhatsappNotificationRecipient::create([
+                'whatsapp_notification_id' => $notification->id,
+                'whatsapp_contact_id'      => $contact->id,
+                'status'                   => 'pending',
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'WhatsApp notification scheduled successfully',
+                'data' => [
+                    'notification_id' => $notification->id,
+                    'customer_name'   => $assignBase->customer_name,
+                    'mobile'          => $assignBase->mobile,
+                    'scheduled_at'    => $scheduledAt->format('d/m/Y H:i'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function whatsappNotificationsData(Request $request)
+    {
+        try {
+            $request->validate([
+                'emp_id'         => 'required|integer|exists:users,id',
+                'assign_base_id' => 'required|integer|exists:assign_bases,id',
+            ]);
+
+            $assignBase = AssignBase::where('id', $request->assign_base_id)
+                ->where('emp_id', $request->emp_id)
+                ->first();
+
+            if (!$assignBase) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'This customer is not assigned to the specified employee',
+                ], 404);
+            }
+
+            $contact = \App\Models\WhatsappContact::where('mobile', $assignBase->mobile)->first();
+
+            $items = [];
+
+            if ($contact) {
+                $recipients = \App\Models\WhatsappNotificationRecipient::with('notification')
+                    ->where('whatsapp_contact_id', $contact->id)
+                    ->orderByDesc('id')
+                    ->get();
+
+                foreach ($recipients as $recipient) {
+                    $notification = $recipient->notification;
+                    if (!$notification) continue;
+
+                    $params = $notification->template_params ?? [];
+
+                    $items[] = [
+                        'id'           => $recipient->id,
+                        'amount'       => $params[0] ?? null,
+                        'due_date'     => $params[1] ?? null,
+                        'header_image' => $notification->header_image_path
+                            ? Storage::disk('public')->url($notification->header_image_path)
+                            : null,
+                        'scheduled_at' => $notification->scheduled_at ? $notification->scheduled_at->format('d/m/Y H:i') : '—',
+                        'status'       => $recipient->status,
+                        'error'        => $recipient->error_message,
+                    ];
+                }
+            }
+
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'customer_name' => $assignBase->customer_name,
+                    'mobile'        => $assignBase->mobile,
+                    'items'         => $items,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -675,6 +866,26 @@ class AuthApiController extends Controller
         }
     }
 
+    public function processScheduledWhatsappNotifications(Request $request)
+    {
+        try {
+            Artisan::call('app:send-scheduled-mobile-whatsapp-notifications');
+            $output = Artisan::output();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Scheduled mobile-app WhatsApp notifications processed successfully',
+                'output' => trim($output)
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Error processing scheduled WhatsApp notifications: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Schedule notification job to run at the specified time
      */
@@ -709,6 +920,213 @@ class AuthApiController extends Controller
                 'notification_id' => $notification->id,
                 'error' => $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Mobile Calendar Events API
+     * Returns reminders and WhatsApp notifications.
+     * Non-admin mobile users only see what they created.
+     * Admin mobile users can see all or filter by employee.
+     */
+    public function calendarEvents(Request $request)
+    {
+        try {
+            $empId = $request->input('emp_id');
+            $user = $empId ? User::find($empId) : null;
+            $isAdmin = $user ? $user->isAdmin() : false;
+
+            $targetEmpId = null;
+            if ($user && !$isAdmin) {
+                // Non-admin employee: ONLY see what they created
+                $targetEmpId = (int) $user->id;
+            } elseif ($request->filled('employee_id') && $request->employee_id !== 'all') {
+                $targetEmpId = (int) $request->employee_id;
+            } elseif ($empId && !$isAdmin) {
+                $targetEmpId = (int) $empId;
+            }
+
+            // Determine date range
+            if ($request->filled('from_date') && $request->filled('to_date')) {
+                // Support d/m/Y or Y-m-d format
+                $startDate = str_contains($request->from_date, '/')
+                    ? Carbon::createFromFormat('d/m/Y', $request->from_date)->startOfDay()
+                    : Carbon::parse($request->from_date)->startOfDay();
+
+                $endDate = str_contains($request->to_date, '/')
+                    ? Carbon::createFromFormat('d/m/Y', $request->to_date)->endOfDay()
+                    : Carbon::parse($request->to_date)->endOfDay();
+            } else {
+                $year = (int) $request->input('year', date('Y'));
+                $month = (int) $request->input('month', date('n'));
+                $carbonMonth = Carbon::createFromDate($year, $month, 1);
+                $startDate = $carbonMonth->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY);
+                $endDate = $carbonMonth->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY);
+            }
+
+            $typeFilter = $request->input('type', 'all');
+            $items = [];
+            $now = Carbon::now();
+
+            // 1. Reminders
+            if ($typeFilter === 'all' || $typeFilter === 'reminder') {
+                $notifQuery = Notification::with(['employee', 'assignBase.product'])
+                    ->whereBetween('notification_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+
+                if ($targetEmpId) {
+                    $notifQuery->where('emp_id', $targetEmpId);
+                }
+
+                $notifications = $notifQuery->orderBy('notification_date')->orderBy('notification_time')->get();
+
+                foreach ($notifications as $n) {
+                    if (!$n->notification_date) continue;
+                    $dateStr = $n->notification_date->format('Y-m-d');
+                    $timeStr = $n->notification_time ? substr($n->notification_time, 0, 5) : '00:00';
+                    $time12 = ($timeStr !== '00:00') ? Carbon::createFromFormat('H:i', $timeStr)->format('h:i A') : '—';
+                    $notifDatetime = Carbon::parse($dateStr . ' ' . $timeStr);
+
+                    $isSent = (bool) $n->is_sent;
+                    $statusLabel = $isSent ? 'Completed' : ($notifDatetime->lte($now) ? 'Due' : 'Upcoming');
+
+                    $creatorName = $n->employee?->name ?? 'Unknown';
+
+                    $items[] = [
+                        'id'            => 'rem_' . $n->id,
+                        'raw_id'        => $n->id,
+                        'type'          => 'reminder',
+                        'type_label'    => 'Reminder',
+                        'title'         => $n->assignBase?->customer_name ?? 'Reminder',
+                        'date'          => $dateStr,
+                        'display_date'  => $n->notification_date->format('d/m/Y'),
+                        'time'          => $time12,
+                        'time_24'       => $timeStr,
+                        'time_12'       => $time12,
+                        'customer_name' => $n->assignBase?->customer_name ?? '—',
+                        'company_name'  => $n->assignBase?->company_name ?? '—',
+                        'product_type'  => $n->assignBase?->product?->name ?? $n->assignBase?->product_type ?? null,
+                        'mobile'        => $n->assignBase?->mobile ?? '—',
+                        'remarks'       => $n->remarks ?? '',
+                        'status'        => $statusLabel,
+                        'is_sent'       => $isSent,
+                        'emp_id'        => $n->emp_id,
+                        'added_by'      => $creatorName,
+                    ];
+                }
+            }
+
+            // 2. WhatsApp Notifications
+            if ($typeFilter === 'all' || $typeFilter === 'whatsapp') {
+                $waQuery = \App\Models\WhatsappNotification::with(['employee', 'assignBase.product', 'recipients.contact'])
+                    ->whereBetween('scheduled_at', [$startDate, $endDate]);
+
+                if ($targetEmpId) {
+                    $waQuery->where(function($q) use ($targetEmpId) {
+                        $q->where('emp_id', $targetEmpId)
+                          ->orWhereHas('assignBase', function($ab) use ($targetEmpId) {
+                              $ab->where('emp_id', $targetEmpId);
+                          });
+                    });
+                }
+
+                $whatsappList = $waQuery->orderBy('scheduled_at')->get();
+
+                foreach ($whatsappList as $wa) {
+                    if (!$wa->scheduled_at) continue;
+
+                    $customerName = $wa->assignBase?->customer_name;
+                    $companyName = $wa->assignBase?->company_name ?? '—';
+                    $mobile = $wa->assignBase?->mobile;
+
+                    if (!$customerName && $wa->recipients->isNotEmpty()) {
+                        $firstRecipient = $wa->recipients->first();
+                        $customerName = $firstRecipient->contact?->name ?? 'Recipient';
+                        $mobile = $firstRecipient->contact?->mobile ?? '—';
+                    }
+
+                    $params = $wa->template_params ?? [];
+                    $creatorName = $wa->employee?->name ?? ($wa->source === 'mobile' ? 'Mobile User' : 'Admin');
+
+                    $timeStr = $wa->scheduled_at->format('H:i');
+                    $time12  = $wa->scheduled_at->format('h:i A');
+
+                    $items[] = [
+                        'id'            => 'wa_' . $wa->id,
+                        'raw_id'        => $wa->id,
+                        'type'          => 'whatsapp',
+                        'type_label'    => 'WhatsApp',
+                        'title'         => $customerName ?: 'WhatsApp',
+                        'date'          => $wa->scheduled_at->format('Y-m-d'),
+                        'display_date'  => $wa->scheduled_at->format('d/m/Y'),
+                        'time'          => $time12,
+                        'time_24'       => $timeStr,
+                        'time_12'       => $time12,
+                        'customer_name' => $customerName ?: 'WhatsApp Notification',
+                        'company_name'  => $companyName,
+                        'product_type'  => $wa->assignBase?->product?->name ?? $wa->assignBase?->product_type ?? null,
+                        'mobile'        => $mobile ?: '—',
+                        'amount'        => $params[0] ?? null,
+                        'due_date'      => $params[1] ?? null,
+                        'template_name' => $wa->template_name,
+                        'header_image'  => $wa->header_image_path ? Storage::disk('public')->url($wa->header_image_path) : null,
+                        'source'        => $wa->source ?? 'web',
+                        'status'        => ucfirst($wa->status ?? 'pending'),
+                        'emp_id'        => $wa->emp_id,
+                        'added_by'      => $creatorName,
+                    ];
+                }
+            }
+
+            // Group by date
+            $byDate = [];
+            foreach ($items as $item) {
+                $d = $item['date'];
+                if (!isset($byDate[$d])) {
+                    $byDate[$d] = [];
+                }
+                $byDate[$d][] = $item;
+            }
+
+            return response()->json([
+                'status'         => true,
+                'is_admin'       => $isAdmin,
+                'filtered_emp_id'=> $targetEmpId,
+                'total_events'   => count($items),
+                'events_by_date' => $byDate,
+                'events'         => $items,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark one or more reminder notifications as seen/completed from mobile
+     */
+    public function markNotificationSeen(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+            if ($request->has('id') && empty($ids)) {
+                $ids = [$request->input('id')];
+            }
+            if (!empty($ids)) {
+                \App\Models\Notification::whereIn('id', $ids)->update(['is_sent' => true]);
+            }
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Notification(s) marked as completed successfully',
+                'marked_ids' => $ids
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

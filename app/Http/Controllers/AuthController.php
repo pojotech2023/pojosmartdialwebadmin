@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\AssignBase;
 use App\Models\Notification;
 use App\Models\User;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Exports\AssignBaseExport;
@@ -57,6 +58,9 @@ class AuthController extends Controller
     // Employee dropdown
     $employees = User::orderBy('name')->pluck('name', 'id');
 
+    // Product dropdown
+    $products = Product::where('is_active', true)->orderBy('name')->pluck('name', 'id');
+
     // ================= CARD COUNTS (ALL EMPLOYEES) =================
     $cardData = User::leftJoin('assign_bases', 'users.id', '=', 'assign_bases.emp_id')
         ->select(
@@ -69,10 +73,14 @@ class AuthController extends Controller
         ->get();
 
     // ================= TABLE DATA =================
-    $query = AssignBase::query();
+    $query = AssignBase::with(['employee', 'product']);
 
     if ($request->filled('employee_id')) {
         $query->where('emp_id', $request->employee_id);
+    }
+
+    if ($request->filled('product_id')) {
+        $query->where('product_id', $request->product_id);
     }
 
     if ($request->filled('status')) {
@@ -95,6 +103,7 @@ class AuthController extends Controller
 
     return view('dashboard', compact(
         'employees',
+        'products',
         'paginatedRows',
         'cardData'
     ));
@@ -159,6 +168,56 @@ class AuthController extends Controller
         }
     }
 
+    // ---------- WHATSAPP NOTIFICATIONS DATA (VIEW ONLY, JSON) ----------
+    public function whatsappNotificationsData(Request $request)
+    {
+        try {
+            $request->validate([
+                'assign_base_id' => 'required|integer|exists:assign_bases,id',
+            ]);
+
+            $assignBase = AssignBase::findOrFail($request->assign_base_id);
+
+            $contact = \App\Models\WhatsappContact::where('mobile', $assignBase->mobile)->first();
+
+            $items = [];
+
+            if ($contact) {
+                $recipients = \App\Models\WhatsappNotificationRecipient::with('notification')
+                    ->where('whatsapp_contact_id', $contact->id)
+                    ->orderByDesc('id')
+                    ->get();
+
+                foreach ($recipients as $recipient) {
+                    $notification = $recipient->notification;
+                    if (!$notification) continue;
+
+                    $params = $notification->template_params ?? [];
+
+                    $items[] = [
+                        'id'           => $recipient->id,
+                        'amount'       => $params[0] ?? null,
+                        'due_date'     => $params[1] ?? null,
+                        'header_image' => $notification->header_image_path
+                            ? \Illuminate\Support\Facades\Storage::disk('public')->url($notification->header_image_path)
+                            : null,
+                        'scheduled_at' => $notification->scheduled_at ? $notification->scheduled_at->format('d/m/Y H:i') : '—',
+                        'status'       => $recipient->status,
+                        'error'        => $recipient->error_message,
+                    ];
+                }
+            }
+
+            return response()->json([
+                'customer_name' => $assignBase->customer_name,
+                'mobile'        => $assignBase->mobile,
+                'items'         => $items,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     // ---------- MARK NOTIFICATION SEEN ----------
     public function markNotificationSeen(Request $request)
     {
@@ -172,10 +231,14 @@ class AuthController extends Controller
     // ---------- EXPORT DASHBOARD DATA ----------
     public function exportDashboard(Request $request)
     {
-        $query = AssignBase::with(['employee', 'loanApplication']);
+        $query = AssignBase::with(['employee', 'product', 'loanApplication']);
 
         if ($request->filled('employee_id') && $request->employee_id != '') {
             $query->where('emp_id', $request->employee_id);
+        }
+
+        if ($request->filled('product_id') && $request->product_id != '') {
+            $query->where('product_id', $request->product_id);
         }
 
         if ($request->filled('status') && $request->status != '') {

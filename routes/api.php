@@ -14,8 +14,16 @@ Route::post('/get-due-notifications', [AuthApiController::class, 'getDueNotifica
 Route::post('/register-device-token', [AuthApiController::class, 'registerDeviceToken']);
 Route::post('/send-push-notification', [AuthApiController::class, 'sendPushNotification']);
 Route::post('/schedule-notification', [AuthApiController::class, 'sendScheduledNotification']);
+Route::post('/schedule-whatsapp-notification', [AuthApiController::class, 'scheduleWhatsappNotification']);
+Route::post('/whatsapp-notifications-data', [AuthApiController::class, 'whatsappNotificationsData']);
+Route::post('/process-scheduled-whatsapp-notifications', [AuthApiController::class, 'processScheduledWhatsappNotifications']);
 Route::post('/process-scheduled-notifications', [AuthApiController::class, 'processScheduledNotifications']);
 Route::get('/get-notification/{assignBaseId}', [AuthApiController::class, 'getNotification']);
 Route::post('/save-loan-application', [AuthApiController::class, 'saveLoanApplication']);
 Route::get('/get-loan-application/{assignBaseId}', [AuthApiController::class, 'getLoanApplication']);
 Route::post('/get-loan-application-by-employee', [AuthApiController::class, 'getLoanApplicationByEmployee']);
+Route::match(['get', 'post'], '/calendar-events', [AuthApiController::class, 'calendarEvents']);
+Route::post('/mark-notification-seen', [AuthApiController::class, 'markNotificationSeen']);
+Route::post('/mark-reminder-seen', [AuthApiController::class, 'markNotificationSeen']);
+Route::get('/products', [AuthApiController::class, 'getProducts']);
+Route::get('/product-types', [AuthApiController::class, 'getProducts']);

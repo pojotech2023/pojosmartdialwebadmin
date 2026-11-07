@@ -11,16 +11,22 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('loan_applications', function (Blueprint $table) {
-            // Add new columns for front and back Aadhar uploads
-            $table->string('aadhar_card_front_upload')->nullable()->after('mode');
-            $table->string('aadhar_card_back_upload')->nullable()->after('aadhar_card_front_upload');
-            
-            // Drop old single aadhar_card_upload column if it exists
-            if (Schema::hasColumn('loan_applications', 'aadhar_card_upload')) {
-                $table->dropColumn('aadhar_card_upload');
-            }
-        });
+        if (Schema::hasTable('loan_applications')) {
+            Schema::table('loan_applications', function (Blueprint $table) {
+                // Add new columns for front and back Aadhar uploads if not exists
+                if (!Schema::hasColumn('loan_applications', 'aadhar_card_front_upload')) {
+                    $table->string('aadhar_card_front_upload')->nullable()->after('mode');
+                }
+                if (!Schema::hasColumn('loan_applications', 'aadhar_card_back_upload')) {
+                    $table->string('aadhar_card_back_upload')->nullable()->after('aadhar_card_front_upload');
+                }
+                
+                // Drop old single aadhar_card_upload column if it exists
+                if (Schema::hasColumn('loan_applications', 'aadhar_card_upload')) {
+                    $table->dropColumn('aadhar_card_upload');
+                }
+            });
+        }
     }
 
     /**

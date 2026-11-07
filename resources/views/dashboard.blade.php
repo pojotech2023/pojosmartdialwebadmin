@@ -1,28 +1,57 @@
 @extends('layouts.app')
 
+@section('page-title', 'Dashboard')
+
 @section('content')
-<h2>Dashboard</h2>
-<p>Welcome, {{ auth()->user()->name }}</p>
+<div class="page-title">Dashboard</div>
+<div class="page-subtitle">Welcome back, {{ auth()->user()->name }}</div>
 
 {{-- ============ FULL-SCREEN NOTIFICATION PANEL ============ --}}
-<div id="notifPanel" style="display:none;position:fixed;inset:0;z-index:9999;background:#f5f7fb;overflow-y:auto">
+<div id="notifPanel" class="notif-panel">
 
     {{-- Header --}}
-    <div style="background:#0f172a;color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10">
-        <div style="display:flex;align-items:center;gap:12px">
-            <i class="fas fa-bell" style="font-size:20px"></i>
-            <span style="font-size:18px;font-weight:700">Notification List</span>
-            <span id="notifPanelSubtitle" style="font-size:13px;color:#94a3b8;margin-left:8px"></span>
+    <div class="notif-panel-header">
+        <div class="notif-panel-header-left">
+            <div class="notif-panel-icon"><i class="fas fa-bell"></i></div>
+            <div>
+                <div class="notif-panel-title">Notification List</div>
+                <div id="notifPanelSubtitle" class="notif-panel-subtitle"></div>
+            </div>
         </div>
-        <button onclick="closeNotifPanel()" style="background:#334155;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:14px;font-weight:600">
+        <button onclick="closeNotifPanel()" class="notif-close-btn">
             <i class="fas fa-times"></i> Close
         </button>
     </div>
 
     {{-- Content --}}
-    <div id="notif-content" style="padding:28px;max-width:860px;margin:0 auto">
-        <div style="text-align:center;color:#9ca3af;padding:60px">
-            <i class="fas fa-spinner fa-spin" style="font-size:28px"></i>
+    <div id="notif-content" class="notif-panel-content">
+        <div class="nl-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+</div>
+
+{{-- ============ FULL-SCREEN WHATSAPP NOTIFICATION PANEL (VIEW ONLY) ============ --}}
+<div id="waPanel" class="notif-panel">
+
+    <div class="notif-panel-header" style="background:linear-gradient(135deg,#128c4a,#25d366 60%,#34e070);box-shadow:0 8px 24px rgba(18,140,74,0.25);">
+        <div class="notif-panel-header-left">
+            <div class="notif-panel-icon"><i class="fab fa-whatsapp"></i></div>
+            <div>
+                <div class="notif-panel-title">WhatsApp Notifications</div>
+                <div id="waPanelSubtitle" class="notif-panel-subtitle"></div>
+            </div>
+        </div>
+        <button onclick="closeWaPanel()" class="notif-close-btn">
+            <i class="fas fa-times"></i> Close
+        </button>
+    </div>
+
+    <div id="wa-content" class="notif-panel-content">
+        <div class="nl-loading">
+            <i class="fas fa-spinner fa-spin"></i>
             <p>Loading...</p>
         </div>
     </div>
@@ -33,49 +62,157 @@
 <div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:10px"></div>
 
 <style>
+    .notif-panel {
+        display: none;
+        position: fixed; inset: 0; z-index: 9999;
+        background: radial-gradient(circle at 15% 0%, #eef2ff 0%, #f5f7fb 40%, #f5f7fb 100%);
+        overflow-y: auto;
+    }
+
+    .notif-panel-header {
+        background: linear-gradient(135deg,#4338ca,#6d28d9 60%,#9333ea);
+        color: #fff;
+        padding: 20px 28px;
+        display: flex; align-items: center; justify-content: space-between;
+        position: sticky; top: 0; z-index: 10;
+        box-shadow: 0 8px 24px rgba(76,29,149,0.25);
+    }
+    .notif-panel-header-left { display: flex; align-items: center; gap: 14px; }
+    .notif-panel-icon {
+        width: 44px; height: 44px; border-radius: 14px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(6px);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 19px;
+    }
+    .notif-panel-title { font-size: 18px; font-weight: 800; letter-spacing: 0.2px; }
+    .notif-panel-subtitle { font-size: 12.5px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+
+    .notif-close-btn {
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.25);
+        color: #fff; border-radius: 10px;
+        padding: 9px 18px; cursor: pointer;
+        font-size: 13.5px; font-weight: 600;
+        transition: background 0.2s, transform 0.15s;
+    }
+    .notif-close-btn:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
+
+    .notif-panel-content { padding: 30px 30px 30px 40px; max-width: 880px; margin: 0; }
+
+    .nl-loading { text-align: center; color: #9ca3af; padding: 70px 0; }
+    .nl-loading i { font-size: 30px; color: #6d28d9; }
+
+    @keyframes cardIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
     .nl-card {
         background: #fff;
-        border-radius: 14px;
-        padding: 18px 20px;
-        margin-bottom: 12px;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+        border-radius: 18px;
+        padding: 20px 22px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 16px rgba(30,27,75,0.07);
+        border: 1px solid #eef0f6;
         display: flex;
         align-items: flex-start;
-        gap: 16px;
-        transition: box-shadow 0.2s;
-        border-left: 4px solid #3b82f6;
+        gap: 18px;
+        transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+        position: relative;
+        overflow: hidden;
+        animation: cardIn 0.4s ease both;
     }
-    .nl-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
+    .nl-card::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+        background: linear-gradient(180deg,#6366f1,#8b5cf6);
+    }
+    .nl-card-due::before      { background: linear-gradient(180deg,#f87171,#dc2626); }
+    .nl-card-upcoming::before { background: linear-gradient(180deg,#8b5cf6,#6d28d9); }
+    .nl-card:hover { box-shadow: 0 14px 34px rgba(30,27,75,0.14); transform: translateY(-3px); }
+    .nl-card-due { border-color: #fecdd3; box-shadow: 0 4px 18px rgba(220,38,38,0.10); }
+    .nl-card-due:hover { border-color: #fca5a5; }
+    .nl-card-upcoming:hover { border-color: #ddd6fe; }
 
     .nl-icon {
-        width: 42px; height: 42px;
-        border-radius: 12px;
+        width: 48px; height: 48px;
+        border-radius: 14px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 18px; flex-shrink: 0;
-        background: #eff6ff; color: #3b82f6;
+        font-size: 19px; flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
+    }
+    .nl-icon-due      { background: linear-gradient(135deg,#fee2e2,#fecaca); color: #dc2626; }
+    .nl-icon-upcoming { background: linear-gradient(135deg,#ede9fe,#ddd6fe); color: #6d28d9; }
+
+    .nl-customer   { font-size: 15.5px; font-weight: 800; color: #0f172a; letter-spacing: 0.1px; }
+    .nl-meta-row   { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 5px; }
+    .nl-employee, .nl-mobile, .nl-datetime { font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 5px; }
+    .nl-employee i, .nl-mobile i, .nl-datetime i { color: #a5adba; width: 12px; text-align: center; }
+    .nl-remarks    {
+        font-size: 13px; color: #374151; margin-top: 10px;
+        background: #f8fafc; border-radius: 11px; padding: 9px 13px;
+        display: flex; align-items: flex-start; gap: 6px;
+        border: 1px solid #f1f5f9;
     }
 
-    .nl-customer   { font-size: 15px; font-weight: 700; color: #0f172a; }
-    .nl-employee   { font-size: 12px; color: #6b7280; margin-top: 3px; }
-    .nl-datetime   { font-size: 12px; color: #6b7280; margin-top: 3px; }
-    .nl-remarks    { font-size: 13px; color: #374151; margin-top: 6px; background:#f8fafc; border-radius:8px; padding:7px 10px; }
-    .nl-mobile     { font-size: 12px; color:#6b7280; margin-top:3px; }
+    .nl-status-pill {
+        border-radius: 50px; font-size: 11px; padding: 6px 13px; font-weight: 700;
+        display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
+    }
+    .nl-status-due      { background: linear-gradient(135deg,#fee2e2,#fecaca); color: #dc2626; }
+    .nl-status-upcoming { background: linear-gradient(135deg,#ede9fe,#ddd6fe); color: #6d28d9; }
+
+    .nl-dot {
+        width: 7px; height: 7px; border-radius: 50%; background: #dc2626;
+        animation: pulseDot 1.2s ease-in-out infinite;
+    }
+    @keyframes pulseDot {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+        50%      { box-shadow: 0 0 0 5px rgba(220,38,38,0); }
+    }
 
     .nl-empty {
-        text-align: center; padding: 60px 0; color: #94a3b8;
+        text-align: center; padding: 70px 0; color: #94a3b8;
+        background: #fff; border-radius: 16px; border: 1px dashed #e2e8f0;
     }
+    .nl-empty i { font-size: 46px; color: #c7d2fe; }
 
     .toast-notif {
-        background: #1e293b; color: #fff; border-radius: 14px;
-        padding: 14px 18px; min-width: 280px; max-width: 360px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-        border-left: 4px solid #ef4444;
-        animation: slideInRight 0.3s ease;
+        background: linear-gradient(135deg,#1e1b4b,#312e81);
+        color: #fff; border-radius: 16px;
+        padding: 16px 18px; min-width: 280px; max-width: 360px;
+        box-shadow: 0 12px 32px rgba(30,27,75,0.35);
+        border: 1px solid rgba(255,255,255,0.08);
+        animation: slideInRight 0.35s cubic-bezier(.2,.8,.2,1);
     }
     @keyframes slideInRight {
-        from { transform: translateX(100px); opacity: 0; }
+        from { transform: translateX(110px); opacity: 0; }
         to   { transform: translateX(0);     opacity: 1; }
     }
+
+    .btn-mark-seen {
+        background: linear-gradient(135deg,#6366f1,#8b5cf6);
+        color: #fff; border: none; border-radius: 8px;
+        padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-mark-seen:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+
+    .wa-card::before { background: linear-gradient(180deg,#25d366,#128c4a); }
+    .wa-thumb {
+        width: 48px; height: 48px; border-radius: 12px; object-fit: cover; flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+    }
+    .wa-thumb-placeholder {
+        width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+        background: linear-gradient(135deg,#dcfce7,#bbf7d0); color: #128c4a;
+        display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .wa-status-pending { background: linear-gradient(135deg,#fef3c7,#fde68a); color: #b45309; }
+    .wa-status-sent     { background: linear-gradient(135deg,#dcfce7,#bbf7d0); color: #128c4a; }
+    .wa-status-failed   { background: linear-gradient(135deg,#fee2e2,#fecaca); color: #dc2626; }
 </style>
 
 <script>
@@ -84,6 +221,73 @@ const NOTIF_ROUTES = {
     markSeen: '{{ route("dashboard.notifications.mark-seen") }}',
     csrf:     '{{ csrf_token() }}'
 };
+
+const WA_NOTIF_ROUTE = '{{ route("dashboard.whatsapp-notifications.data") }}';
+
+// ---- WhatsApp panel (view only) ----
+function openWaPanel(assignBaseId) {
+    document.getElementById('waPanel').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    loadWaNotifications(assignBaseId);
+}
+function closeWaPanel() {
+    document.getElementById('waPanel').style.display = 'none';
+    document.body.style.overflow = '';
+}
+function loadWaNotifications(assignBaseId) {
+    document.getElementById('wa-content').innerHTML =
+        '<div class="nl-loading"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
+
+    fetch(WA_NOTIF_ROUTE + '?assign_base_id=' + assignBaseId)
+        .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.error || 'Server error ' + r.status)))
+        .then(data => renderWaAll(data))
+        .catch(err => {
+            document.getElementById('wa-content').innerHTML =
+                `<p style="color:#ef4444;text-align:center;padding:40px"><b>Error:</b> ${err}</p>`;
+        });
+}
+function renderWaAll(data) {
+    const sub = document.getElementById('waPanelSubtitle');
+    sub.textContent = '— ' + escHtml(data.customer_name) + ' (' + escHtml(data.mobile) + ')';
+
+    const container = document.getElementById('wa-content');
+    const items = data.items || [];
+
+    if (items.length === 0) {
+        container.innerHTML = `<div class="nl-empty">
+            <i class="fab fa-whatsapp"></i>
+            <p style="margin-top:14px;font-size:15px;font-weight:600">No WhatsApp notifications found</p>
+            <p style="font-size:13px">No WhatsApp messages have been scheduled for this customer yet.</p>
+        </div>`;
+        return;
+    }
+
+    let html = '';
+    items.forEach((n, idx) => {
+        const statusClass = 'wa-status-' + n.status;
+        const statusLabel = n.status.charAt(0).toUpperCase() + n.status.slice(1);
+        const thumb = n.header_image
+            ? `<img class="wa-thumb" src="${n.header_image}" alt="header">`
+            : `<div class="wa-thumb-placeholder"><i class="fab fa-whatsapp"></i></div>`;
+
+        html += `<div class="nl-card wa-card" style="animation-delay:${idx * 35}ms">
+            ${thumb}
+            <div style="flex:1;min-width:0">
+                <div class="nl-meta-row">
+                    <span class="nl-employee"><i class="fas fa-indian-rupee-sign"></i> ${escHtml(n.amount ?? '—')}</span>
+                    <span class="nl-employee"><i class="fas fa-calendar-day"></i> Due: ${escHtml(n.due_date ?? '—')}</span>
+                    <span class="nl-datetime"><i class="fas fa-clock"></i> Scheduled: ${n.scheduled_at}</span>
+                </div>
+                ${n.error ? `<div class="nl-remarks"><i class="fas fa-triangle-exclamation"></i>${escHtml(n.error)}</div>` : ''}
+            </div>
+            <div style="flex-shrink:0">
+                <span class="nl-status-pill ${statusClass}">${statusLabel}</span>
+            </div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+}
 
 let notifData  = { due: [], upcoming: [], history: [] };
 let currentAssignBaseId = null;
@@ -105,7 +309,7 @@ function closeNotifPanel() {
 function loadNotifications(silent) {
     if (!silent) {
         document.getElementById('notif-content').innerHTML =
-            '<div style="text-align:center;color:#9ca3af;padding:40px"><i class="fas fa-spinner fa-spin" style="font-size:28px"></i><p>Loading...</p></div>';
+            '<div class="nl-loading"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
     }
     const url = currentAssignBaseId
         ? NOTIF_ROUTES.data + '?assign_base_id=' + currentAssignBaseId
@@ -129,7 +333,7 @@ function loadNotifications(silent) {
 function updateSubtitle(data) {
     const sub = document.getElementById('notifPanelSubtitle');
     if (!sub) return;
-    const all = [...(data.due || []), ...(data.upcoming || []), ...(data.history || [])];
+    const all = [...(data.due || []), ...(data.upcoming || [])];
     if (currentAssignBaseId && all.length > 0) {
         const first = all[0];
         sub.textContent = '— ' + first.customer_name + (first.company_name !== '—' ? ' (' + first.company_name + ')' : '');
@@ -152,14 +356,16 @@ function updateBadge(count) {
     }
 }
 
-// ---- Render all notifications (upcoming + sent) ----
+// ---- Render all notifications as one flat list ----
 function renderAll() {
     const container = document.getElementById('notif-content');
-    const all = [...(notifData.due || []), ...(notifData.upcoming || []), ...(notifData.history || [])];
+    const due      = notifData.due || [];
+    const upcoming = notifData.upcoming || [];
+    const all      = [...due.map(n => ({ ...n, kind: 'due' })), ...upcoming.map(n => ({ ...n, kind: 'upcoming' }))];
 
     if (all.length === 0) {
         container.innerHTML = `<div class="nl-empty">
-            <i class="fas fa-bell-slash" style="font-size:48px;color:#cbd5e1"></i>
+            <i class="fas fa-bell-slash"></i>
             <p style="margin-top:14px;font-size:15px;font-weight:600">No notifications found</p>
             <p style="font-size:13px">No reminders have been set for this customer yet.</p>
         </div>`;
@@ -167,30 +373,25 @@ function renderAll() {
     }
 
     let html = '';
-    all.forEach(n => {
-        const sent = n.is_sent;
-        const cardStyle = sent
-            ? 'border-left:4px solid #10b981;opacity:0.8'
-            : 'border-left:4px solid #3b82f6';
-        const iconStyle = sent
-            ? 'background:#f0fdf4;color:#10b981'
-            : 'background:#eff6ff;color:#3b82f6';
-        const icon = sent ? 'fa-check-circle' : 'fa-bell';
-
-        html += `<div class="nl-card" style="${cardStyle}">
-            <div class="nl-icon" style="${iconStyle}"><i class="fas ${icon}"></i></div>
+    all.forEach((n, idx) => {
+        const kind = n.kind;
+        html += `<div class="nl-card nl-card-${kind}" style="animation-delay:${idx * 35}ms">
+            <div class="nl-icon nl-icon-${kind}"><i class="fas fa-bell"></i></div>
             <div style="flex:1;min-width:0">
                 <div class="nl-customer">${escHtml(n.customer_name)}</div>
-                <div class="nl-employee"><i class="fas fa-user" style="width:13px"></i> ${escHtml(n.employee_name)} &nbsp;|&nbsp; <i class="fas fa-building" style="width:13px"></i> ${escHtml(n.company_name)}</div>
-                <div class="nl-mobile"><i class="fas fa-phone" style="width:13px"></i> ${escHtml(n.mobile)}</div>
-                <div class="nl-datetime"><i class="fas fa-calendar" style="width:13px"></i> ${n.notification_date} &nbsp;&nbsp; <i class="fas fa-clock" style="width:13px"></i> ${n.notification_time}</div>
-                <div class="nl-remarks"><i class="fas fa-comment-dots" style="color:#94a3b8;margin-right:6px"></i>${escHtml(n.remarks)}</div>
+                <div class="nl-meta-row">
+                    <span class="nl-employee"><i class="fas fa-user"></i> ${escHtml(n.employee_name)}</span>
+                    <span class="nl-employee"><i class="fas fa-building"></i> ${escHtml(n.company_name)}</span>
+                    <span class="nl-mobile"><i class="fas fa-phone"></i> ${escHtml(n.mobile)}</span>
+                    <span class="nl-datetime"><i class="fas fa-calendar"></i> ${n.notification_date} &nbsp;<i class="fas fa-clock"></i> ${n.notification_time}</span>
+                </div>
+                ${n.remarks ? `<div class="nl-remarks"><i class="fas fa-comment-dots"></i>${escHtml(n.remarks)}</div>` : ''}
             </div>
-            <div style="flex-shrink:0;text-align:center">
-                ${sent
-                    ? `<span style="background:#f0fdf4;color:#16a34a;border-radius:50px;font-size:11px;padding:4px 10px;font-weight:700;display:block">Sent</span>`
-                    : `<span style="background:#eff6ff;color:#2563eb;border-radius:50px;font-size:11px;padding:4px 10px;font-weight:700;display:block">Pending</span>`
-                }
+            <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+                <span class="nl-status-pill nl-status-${kind}">
+                    ${kind === 'due' ? '<span class="nl-dot"></span> Due' : '<i class="fas fa-hourglass-half"></i> Upcoming'}
+                </span>
+                ${kind === 'due' ? `<button class="btn-mark-seen" onclick="markSeen([${n.id}])"><i class="fas fa-check"></i> Mark Seen</button>` : ''}
             </div>
         </div>`;
     });
@@ -289,107 +490,31 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<style>
-    body { background-color: #f5f7fb; }
-    .card-box {
-        background: #ffffff;
-        border-radius: 16px;
-        padding: 22px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-        width: 98%;
-    }
-    .form-label {
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        display: block;
-        color: #374151;
-    }
-    input[type="date"], select {
-        padding: 8px;
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        font-size: 13px;
-        background: #f9fafb;
-    }
-    .btn-upload {
-        background: #2563eb;
-        color: #ffffff;
-        border: none;
-        padding: 9px 18px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .btn-cancel-small {
-        background: #ef4444;
-        color: #ffffff;
-        border: none;
-        padding: 8px 14px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-    }
-    th, td {
-        padding: 8px;
-        text-align: left;
-    }
-    thead { border-bottom: 1px solid #e5e7eb; }
-    tbody tr { border-bottom: 1px solid #f1f5f9; }
-    
-    .action-btn {
-        padding: 8px;
-        margin: 0 2px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        width: 32px;
-        height: 32px;
-        text-align: center;
-    }
-    .btn-reminder {
-        background: #10b981;
-        color: white;
-    }
-    .btn-eye {
-        background: #6366f1;
-        color: white;
-    }
-    
-</style>
-
 {{-- EMPLOYEE SUMMARY CARDS --}}
 @if(isset($cardData) && $cardData->count() > 0)
 
-<div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:20px">
-
-    @foreach($cardData as $card)
-        <div class="card-box" style="width:220px;text-align:center">
-            <div style="font-size:15px;font-weight:600">
-                 {{ $card->name }}
+<div class="stat-grid">
+    @php
+        $statGradients = [
+            'linear-gradient(135deg,#6366f1,#4f46e5)',
+            'linear-gradient(135deg,#34d399,#10b981)',
+            'linear-gradient(135deg,#fbbf24,#f59e0b)',
+            'linear-gradient(135deg,#38bdf8,#0ea5e9)',
+            'linear-gradient(135deg,#f472b6,#ec4899)',
+            'linear-gradient(135deg,#a78bfa,#8b5cf6)',
+        ];
+    @endphp
+    @foreach($cardData as $index => $card)
+        <div class="stat-card">
+            <div class="stat-icon" style="background:{{ $statGradients[$index % count($statGradients)] }};">
+                <i class="fas fa-user-tie"></i>
             </div>
-
-            <div style="font-size:26px;font-weight:700;margin-top:8px">
-                {{ $card->total }}
-            </div>
-
-            <div style="font-size:12px;color:#6b7280">
-                Assigned Bases
+            <div>
+                <div class="stat-value">{{ $card->total }}</div>
+                <div class="stat-label">{{ $card->name }} — Assigned Bases</div>
             </div>
         </div>
     @endforeach
-
 </div>
 
 @endif
@@ -425,6 +550,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 </select>
             </div>
 
+            <div>
+                <label class="form-label">Product Type</label>
+                <select name="product_id">
+                    <option value="">All Products</option>
+                    @foreach($products as $pId => $pName)
+                        <option value="{{ $pId }}" {{ request('product_id') == $pId ? 'selected' : '' }}>
+                            {{ $pName }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             
             {{-- From Date --}}
             <div>
@@ -444,9 +581,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     max="{{ now()->toDateString() }}">
             </div>
 
-            <button type="submit" class="btn-upload">Filter</button>
+            <button type="submit" class="btn-upload"><i class="fas fa-filter"></i> Filter</button>
 
-            <a href="{{ route('dashboard') }}" class="btn-cancel-small">Cancel</a>
+            <a href="{{ route('dashboard') }}" class="btn-cancel-small"><i class="fas fa-rotate-left"></i> Cancel</a>
 
         </div>
 
@@ -454,11 +591,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <form method="GET" action="{{ route('dashboard.export') }}" id="exportForm" onsubmit="return confirmExport()">
         <input type="hidden" name="employee_id" id="export_employee_id" value="{{ request('employee_id') }}">
+        <input type="hidden" name="product_id" id="export_product_id" value="{{ request('product_id') }}">
         <input type="hidden" name="status" id="export_status" value="{{ request('status') }}">
         <input type="hidden" name="from_date" id="export_from_date" value="{{ request('from_date') }}">
         <input type="hidden" name="to_date" id="export_to_date" value="{{ request('to_date') }}">
-        <button type="submit" class="btn-upload" style="background: #059669; white-space: nowrap;">
-            📥 Export
+        <button type="submit" class="btn-upload" style="background: linear-gradient(135deg,#34d399,#059669); white-space: nowrap;">
+            <i class="fas fa-download"></i> Export
         </button>
     </form>
 
@@ -531,6 +669,7 @@ function confirmExport() {
             <th>Employee Name</th>
             <th>Customer Name</th>
             <th>Company Name</th>
+            <th>Product Type</th>
             <th>Status</th>
             <th>Mobile</th>
             <th>Date</th>
@@ -545,16 +684,28 @@ function confirmExport() {
             <td>{{ $row->employee->name ?? '' }}</td>
             <td>{{ $row->customer_name }}</td>
             <td>{{ $row->company_name }}</td>
-            <td>{{ $row->status }}</td>
+            <td>
+                @if($row->product || $row->product_type)
+                    <span style="background:#eef2ff;color:#4338ca;padding:3px 9px;border-radius:12px;font-size:11.5px;font-weight:700;">
+                        <i class="fas fa-tag" style="font-size:10px;margin-right:3px;"></i> {{ $row->product->name ?? $row->product_type }}
+                    </span>
+                @else
+                    <span style="color:#94a3b8;font-size:12px;">—</span>
+                @endif
+            </td>
+            <td><span class="status-badge status-{{ \Illuminate\Support\Str::slug($row->status) }}">{{ $row->status }}</span></td>
             <td>{{ $row->mobile }}</td>
             <td>{{ \Carbon\Carbon::parse($row->assign_date)->format('d/m/Y') }}</td>
             <td>
-                <button class="action-btn btn-reminder" onclick="openNotifPanel({{ $row->id }})" title="View Notifications">
-                    📅
+                <button class="icon-btn icon-btn-reminder" onclick="openNotifPanel({{ $row->id }})" title="View Notifications">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <button class="icon-btn icon-btn-whatsapp" onclick="openWaPanel({{ $row->id }})" title="View WhatsApp Notifications">
+                    <i class="fab fa-whatsapp"></i>
                 </button>
                 @if($row->employee && $row->employee->application_id == 1)
-                    <button class="action-btn btn-eye" onclick="viewDetails({{ $row->id }})" title="View Details">
-                        👁️
+                    <button class="icon-btn icon-btn-view" onclick="viewDetails({{ $row->id }})" title="View Details">
+                        <i class="fas fa-eye"></i>
                     </button>
                 @endif
             </td>

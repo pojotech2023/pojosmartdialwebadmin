@@ -2,103 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Panel</title>
+    <title>@yield('page-title', 'Admin Panel')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Font Awesome -->
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: #f5f7fb;
-        }
+    <!-- Shared Theme -->
+    <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
 
-        /* ================= SIDEBAR ================= */
-        .sidebar {
-            width: 60px;
-            height: 100vh;
-            background: #0f172a;
-            position: fixed;
-            left: 0;
-            top: 0;
-            transition: width 0.3s ease;
-            overflow: hidden;
-            z-index: 1000;
-        }
-
-        /* EXPAND ON HOVER */
-        .sidebar:hover {
-            width: 240px;
-        }
-
-        .sidebar-header {
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffffff;
-            font-size: 20px;
-        }
-
-        .menu {
-            list-style: none;
-            padding: 0;
-            margin: 10px 0 0;
-        }
-
-        .menu li {
-            margin: 4px 0;
-        }
-
-        .menu a {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 12px 18px;
-            color: #e5e7eb;
-            text-decoration: none;
-            font-size: 14px;
-            white-space: nowrap;
-            transition: background 0.2s ease;
-        }
-
-        .menu a i {
-            font-size: 16px;
-            min-width: 22px;
-            text-align: center;
-        }
-
-        .menu a:hover {
-            background: #1e293b;
-            border-radius: 8px;
-        }
-
-        /* HIDE TEXT BY DEFAULT */
-        .menu span {
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        /* SHOW TEXT ON HOVER */
-        .sidebar:hover .menu span {
-            opacity: 1;
-        }
-
-        /* ================= CONTENT ================= */
-        .content {
-            margin-left: 60px;
-            padding: 20px;
-            transition: margin-left 0.3s ease;
-        }
-
-        /* SHIFT CONTENT WHEN SIDEBAR HOVER */
-        .sidebar:hover ~ .content {
-            margin-left: 240px;
-        }
-    </style>
+    @stack('styles')
 </head>
 
 <body>
@@ -107,30 +21,54 @@
 <div class="sidebar">
 
     <div class="sidebar-header">
-        <i class="fas fa-bars"></i>
+        <div class="logo-badge"><i class="fas fa-bolt"></i></div>
+        <span class="logo-text">Admin Panel</span>
     </div>
 
     <ul class="menu">
-        <li>
+        <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
             <a href="{{ route('dashboard') }}">
                 <i class="fas fa-chart-line"></i>
                 <span>Dashboard</span>
             </a>
         </li>
 
-        <li>
+        <li class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">
             <a href="{{ route('employees.index') }}">
                 <i class="fas fa-users"></i>
                 <span>Employees</span>
             </a>
         </li>
 
-        <li>
+        <li class="{{ request()->routeIs('assign-base.*') ? 'active' : '' }}">
             <a href="{{ route('assign-base.index') }}">
                 <i class="fas fa-database"></i>
                 <span>Assign Base</span>
             </a>
         </li>
+
+        <li class="{{ request()->routeIs('whatsapp.*') ? 'active' : '' }}">
+            <a href="{{ route('whatsapp.index') }}">
+                <i class="fab fa-whatsapp"></i>
+                <span>WhatsApp Notification</span>
+            </a>
+        </li>
+
+        <li class="{{ request()->routeIs('calendar.*') ? 'active' : '' }}">
+            <a href="{{ route('calendar.index') }}">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Calendar</span>
+            </a>
+        </li>
+
+        <li class="{{ request()->routeIs('products.*') ? 'active' : '' }}">
+            <a href="{{ route('products.index') }}">
+                <i class="fas fa-cubes"></i>
+                <span>Product Types</span>
+            </a>
+        </li>
+
+        <div class="menu-divider"></div>
 
         <li>
             <a href="{{ route('logout') }}"
@@ -144,12 +82,26 @@
 
 {{-- ================= MAIN CONTENT ================= --}}
 <div class="content">
-    @yield('content')
+
+    <div class="topbar">
+        <div class="topbar-title">@yield('page-title', 'Dashboard')</div>
+        <div class="topbar-user">
+            <span>{{ auth()->user()->name ?? '' }}</span>
+            <div class="topbar-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}</div>
+        </div>
+    </div>
+
+    <div class="page-body">
+        @yield('content')
+    </div>
+
 </div>
 
 <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
     @csrf
 </form>
+
+@stack('scripts')
 
 </body>
 </html>

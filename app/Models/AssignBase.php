@@ -10,6 +10,8 @@ class AssignBase extends Model
         'emp_id',
         'customer_name',
         'company_name',
+        'product_id',
+        'product_type',
         'status',
         'mobile',
         'assign_date',
@@ -22,6 +24,11 @@ class AssignBase extends Model
     public function employee()
     {
         return $this->belongsTo(User::class, 'emp_id');
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
     }
 
     public function loanApplication()

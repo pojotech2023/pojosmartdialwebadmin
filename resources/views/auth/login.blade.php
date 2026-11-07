@@ -5,7 +5,7 @@
     <title>Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Font Awesome (Eye icon) -->
+    <!-- Font Awesome -->
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -18,152 +18,254 @@
         }
 
         body {
-            background-color: #f5f7fb;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 24px;
+            background: radial-gradient(circle at 15% 20%, #4338ca 0%, transparent 45%),
+                        radial-gradient(circle at 85% 80%, #06b6d4 0%, transparent 45%),
+                        linear-gradient(135deg, #0f172a, #1e1b4b);
         }
 
-        .card {
+        .auth-shell {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            max-width: 900px;
+            width: 100%;
             background: #ffffff;
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            width: 380px;
-            padding: 28px 30px 26px;
+            border-radius: 24px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+            overflow: hidden;
+        }
+
+        @media (max-width: 760px) {
+            .auth-shell { grid-template-columns: 1fr; max-width: 420px; }
+            .brand-panel { display: none; }
+        }
+
+        .brand-panel {
+            background: linear-gradient(160deg, #4f46e5, #4338ca 55%, #1e1b4b);
+            color: #fff;
+            padding: 44px 38px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .brand-panel::after {
+            content: "";
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%);
+            right: -120px;
+            bottom: -120px;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .brand-logo .logo-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            background: rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+        }
+
+        .brand-copy {
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-copy h2 {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+
+        .brand-copy p {
+            font-size: 13.5px;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.6;
+        }
+
+        .brand-foot {
+            font-size: 12px;
+            color: rgba(255,255,255,0.55);
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-panel {
+            padding: 48px 42px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .title {
-            font-size: 22px;
-            font-weight: 600;
-            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
             color: #111827;
         }
 
-        .field {
-            margin-bottom: 16px;
+        .subtitle {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 26px;
         }
+
+        .field { margin-bottom: 18px; }
 
         .label {
             font-size: 13px;
             font-weight: 600;
             margin-bottom: 6px;
             display: block;
+            color: #374151;
         }
 
-        .input-wrapper {
-            position: relative;
-        }
+        .input-wrapper { position: relative; }
 
         .input {
             width: 100%;
-            padding: 11px 38px 11px 12px;
-            border-radius: 8px;
+            padding: 12px 40px 12px 14px;
+            border-radius: 10px;
             border: 1px solid #d1d5db;
             font-size: 14px;
             background-color: #f9fafb;
             outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
         }
 
         .input:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 1px rgba(37,99,235,0.25);
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
             background: #ffffff;
         }
 
         .show-toggle {
             position: absolute;
             top: 50%;
-            right: 12px;
+            right: 13px;
             transform: translateY(-50%);
             cursor: pointer;
         }
 
-        .show-toggle i {
-            font-size: 14px;
-            color: #2563eb;
-        }
+        .show-toggle i { font-size: 14px; color: #4f46e5; }
 
         .btn-primary {
             width: 100%;
-            padding: 11px 0;
-            margin-top: 18px;
-            border-radius: 6px;
+            padding: 12px 0;
+            margin-top: 8px;
+            border-radius: 10px;
             border: none;
-            background: #2563eb;
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
             color: #ffffff;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
+            box-shadow: 0 8px 20px rgba(79,70,229,0.3);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
         }
 
         .btn-primary:hover {
-            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(79,70,229,0.4);
         }
 
         .alert-error {
             background: #fef2f2;
-            border: 1px solid #f87171;
+            border: 1px solid #fecaca;
             color: #b91c1c;
-            padding: 8px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            margin-bottom: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 12.5px;
+            margin-bottom: 16px;
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="title">Login</div>
+<div class="auth-shell">
 
-    {{-- Error message --}}
-    @if($errors->any())
-        <div class="alert-error">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
+    <div class="brand-panel">
+        <div class="brand-logo">
+            <div class="logo-badge"><i class="fas fa-bolt"></i></div>
+            <span>Admin Panel</span>
         </div>
-    @endif
 
-    <form method="POST" action="{{ route('login.post') }}">
-        @csrf
+        <div class="brand-copy">
+            <h2>Manage your operations from one dashboard.</h2>
+            <p>Employees, assigned bases, and WhatsApp notifications — all in one clean, unified workspace.</p>
+        </div>
 
-        <!-- Email -->
-        <div class="field">
-            <label class="label">Email ID</label>
-            <div class="input-wrapper">
-                <input class="input"
-                       type="email"
-                       name="email"
-                       value="{{ old('email') }}"
-                       placeholder="Enter email ID"
-                       required>
+        <div class="brand-foot">&copy; {{ date('Y') }} Admin Panel. All rights reserved.</div>
+    </div>
+
+    <div class="form-panel">
+        <div class="title">Welcome back</div>
+        <div class="subtitle">Sign in to continue to your dashboard</div>
+
+        @if($errors->any())
+            <div class="alert-error">
+                @foreach($errors->all() as $error)
+                    <div>{{ $error }}</div>
+                @endforeach
             </div>
-        </div>
+        @endif
 
-        <!-- Password -->
-        <div class="field">
-            <label class="label">Password</label>
-            <div class="input-wrapper">
-                <input class="input"
-                       type="password"
-                       id="password"
-                       name="password"
-                       placeholder="Enter password"
-                       required>
-                <span class="show-toggle" onclick="togglePassword()">
-                    <i class="fa-solid fa-eye" id="eyeIcon"></i>
-                </span>
+        <form method="POST" action="{{ route('login.post') }}">
+            @csrf
+
+            <div class="field">
+                <label class="label">Email ID</label>
+                <div class="input-wrapper">
+                    <input class="input"
+                           type="email"
+                           name="email"
+                           value="{{ old('email') }}"
+                           placeholder="Enter email ID"
+                           required>
+                </div>
             </div>
-        </div>
 
-        <!-- Login Button -->
-        <button type="submit" class="btn-primary">
-            Login
-        </button>
-    </form>
+            <div class="field">
+                <label class="label">Password</label>
+                <div class="input-wrapper">
+                    <input class="input"
+                           type="password"
+                           id="password"
+                           name="password"
+                           placeholder="Enter password"
+                           required>
+                    <span class="show-toggle" onclick="togglePassword()">
+                        <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                    </span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                Login
+            </button>
+        </form>
+    </div>
+
 </div>
 
 <script>
