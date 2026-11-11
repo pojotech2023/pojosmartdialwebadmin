@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthApiController;
+use App\Http\Controllers\CustomerController;
 
 Route::post('/login', [AuthApiController::class, 'login']);
 Route::post('/assign-base-by-employee', [AuthApiController::class, 'assignBaseByEmployee']);
@@ -22,8 +23,10 @@ Route::get('/get-notification/{assignBaseId}', [AuthApiController::class, 'getNo
 Route::post('/save-loan-application', [AuthApiController::class, 'saveLoanApplication']);
 Route::get('/get-loan-application/{assignBaseId}', [AuthApiController::class, 'getLoanApplication']);
 Route::post('/get-loan-application-by-employee', [AuthApiController::class, 'getLoanApplicationByEmployee']);
+Route::match(['get', 'post'], '/get-customer-notes', [CustomerController::class, 'getCustomerNotes']);
+Route::get('/get-customer-notes/{assignBaseId}', [CustomerController::class, 'getCustomerNotes']);
 Route::match(['get', 'post'], '/calendar-events', [AuthApiController::class, 'calendarEvents']);
 Route::post('/mark-notification-seen', [AuthApiController::class, 'markNotificationSeen']);
 Route::post('/mark-reminder-seen', [AuthApiController::class, 'markNotificationSeen']);
-Route::get('/products', [AuthApiController::class, 'getProducts']);
-Route::get('/product-types', [AuthApiController::class, 'getProducts']);
+Route::match(['get', 'post'], '/products', [AuthApiController::class, 'getProducts']);
+Route::match(['get', 'post'], '/product-types', [AuthApiController::class, 'getProducts']);

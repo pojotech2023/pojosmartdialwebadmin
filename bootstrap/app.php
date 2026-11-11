@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
         $middleware->validateCsrfTokens(except: [
             '/login',
             '/api/*',   // ✅ THIS FIXES ALL API 419 ERRORS

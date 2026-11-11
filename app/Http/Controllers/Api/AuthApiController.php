@@ -970,7 +970,7 @@ class AuthApiController extends Controller
 
             // 1. Reminders
             if ($typeFilter === 'all' || $typeFilter === 'reminder') {
-                $notifQuery = Notification::with(['employee', 'assignBase.product'])
+                $notifQuery = Notification::with(['employee.application', 'assignBase.product', 'assignBase.loanApplication'])
                     ->whereBetween('notification_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
 
                 if ($targetEmpId) {
@@ -982,42 +982,86 @@ class AuthApiController extends Controller
                 foreach ($notifications as $n) {
                     if (!$n->notification_date) continue;
                     $dateStr = $n->notification_date->format('Y-m-d');
-                    $timeStr = $n->notification_time ? substr($n->notification_time, 0, 5) : '00:00';
-                    $time12 = ($timeStr !== '00:00') ? Carbon::createFromFormat('H:i', $timeStr)->format('h:i A') : '—';
-                    $notifDatetime = Carbon::parse($dateStr . ' ' . $timeStr);
+                    
+                    // Format time cleanly in 12-hour AM/PM and 24-hour
+                    $time24 = '00:00';
+                    $time12 = '—';
+                    if ($n->notification_time) {
+                        try {
+                            $time12 = Carbon::parse($n->notification_time)->format('h:i A');
+                            $time24 = Carbon::parse($n->notification_time)->format('H:i');
+                        } catch (\Exception $e) {
+                            $time24 = substr($n->notification_time, 0, 5);
+                            $time12 = $time24;
+                        }
+                    }
 
+                    $notifDatetime = Carbon::parse($dateStr . ' ' . $time24);
                     $isSent = (bool) $n->is_sent;
-                    $statusLabel = $isSent ? 'Completed' : ($notifDatetime->lte($now) ? 'Due' : 'Upcoming');
+                    $isDue = false;
+
+                    if ($isSent) {
+                        $statusLabel = 'Completed';
+                        $statusClass = 'completed';
+                    } elseif ($notifDatetime->lte($now)) {
+                        $statusLabel = 'Due';
+                        $statusClass = 'due';
+                        $isDue = true;
+                    } else {
+                        $statusLabel = 'Upcoming';
+                        $statusClass = 'upcoming';
+                    }
 
                     $creatorName = $n->employee?->name ?? 'Unknown';
+                    $loanApp = $n->assignBase?->loanApplication;
 
                     $items[] = [
-                        'id'            => 'rem_' . $n->id,
-                        'raw_id'        => $n->id,
-                        'type'          => 'reminder',
-                        'type_label'    => 'Reminder',
-                        'title'         => $n->assignBase?->customer_name ?? 'Reminder',
-                        'date'          => $dateStr,
-                        'display_date'  => $n->notification_date->format('d/m/Y'),
-                        'time'          => $time12,
-                        'time_24'       => $timeStr,
-                        'time_12'       => $time12,
-                        'customer_name' => $n->assignBase?->customer_name ?? '—',
-                        'company_name'  => $n->assignBase?->company_name ?? '—',
-                        'product_type'  => $n->assignBase?->product?->name ?? $n->assignBase?->product_type ?? null,
-                        'mobile'        => $n->assignBase?->mobile ?? '—',
-                        'remarks'       => $n->remarks ?? '',
-                        'status'        => $statusLabel,
-                        'is_sent'       => $isSent,
-                        'emp_id'        => $n->emp_id,
-                        'added_by'      => $creatorName,
+                        'id'               => 'rem_' . $n->id,
+                        'raw_id'           => $n->id,
+                        'type'             => 'reminder',
+                        'type_label'       => 'Reminder',
+                        'icon'             => 'fas fa-bell',
+                        'title'            => $n->assignBase?->customer_name ?? 'Reminder',
+                        'date'             => $dateStr,
+                        'display_date'     => $n->notification_date->format('d/m/Y'),
+                        'time'             => $time12,       // 12-hour AM/PM format (e.g. 02:00 PM)
+                        'time_12'          => $time12,       // 12-hour AM/PM format (e.g. 02:00 PM)
+                        'time_24'          => $time24,       // 24-hour format (e.g. 14:00)
+                        'customer_name'    => $n->assignBase?->customer_name ?? '—',
+                        'company_name'     => $n->assignBase?->company_name ?? '—',
+                        'product_type'     => $n->assignBase?->product?->name ?? $n->assignBase?->product_type ?? null,
+                        'customer_status'  => $n->assignBase?->status ?? 'NEW',
+                        'mobile'           => $n->assignBase?->mobile ?? '—',
+                        'remarks'          => $n->remarks ?? '',
+                        'status'           => $statusLabel,
+                        'status_class'     => $statusClass,
+                        'is_sent'          => $isSent,
+                        'is_due'           => $isDue,
+                        'emp_id'           => $n->emp_id,
+                        'added_by'         => $creatorName,
+                        'assign_base_id'   => $n->assign_base_id,
+                        'loan_details_url' => $n->assign_base_id ? url('/loan-application-details/' . $n->assign_base_id) : null,
+                        'loan_application' => $loanApp ? [
+                            'id'              => $loanApp->id,
+                            'app_number'      => $loanApp->app_number ?? '—',
+                            'logged_bank'     => $loanApp->logged_bank ?? '—',
+                            'category'        => $loanApp->category ?? '—',
+                            'promo_code'      => $loanApp->promo_code ?? '—',
+                            'req_amount'      => $loanApp->req_amount ? number_format($loanApp->req_amount) : '—',
+                            'approved_amount' => $loanApp->approved_amount ? number_format($loanApp->approved_amount) : '—',
+                            'status'          => $loanApp->status ?? '—',
+                            'login_date'      => $loanApp->login_date ? $loanApp->login_date->format('d/m/Y') : '—',
+                            'bank_manager'    => $loanApp->bank_manager ?? '—',
+                            'location'        => $loanApp->location ?? '—',
+                            'remarks'         => $loanApp->remarks ?? '—',
+                        ] : null,
                     ];
                 }
             }
 
             // 2. WhatsApp Notifications
             if ($typeFilter === 'all' || $typeFilter === 'whatsapp') {
-                $waQuery = \App\Models\WhatsappNotification::with(['employee', 'assignBase.product', 'recipients.contact'])
+                $waQuery = \App\Models\WhatsappNotification::with(['employee.application', 'assignBase.product', 'assignBase.loanApplication', 'recipients.contact'])
                     ->whereBetween('scheduled_at', [$startDate, $endDate]);
 
                 if ($targetEmpId) {
@@ -1046,33 +1090,55 @@ class AuthApiController extends Controller
 
                     $params = $wa->template_params ?? [];
                     $creatorName = $wa->employee?->name ?? ($wa->source === 'mobile' ? 'Mobile User' : 'Admin');
+                    $loanApp = $wa->assignBase?->loanApplication;
 
-                    $timeStr = $wa->scheduled_at->format('H:i');
-                    $time12  = $wa->scheduled_at->format('h:i A');
+                    $time24 = $wa->scheduled_at->format('H:i');
+                    $time12 = $wa->scheduled_at->format('h:i A');
+                    $status = ucfirst($wa->status ?? 'pending');
+                    $statusClass = strtolower($wa->status ?? 'pending');
 
                     $items[] = [
-                        'id'            => 'wa_' . $wa->id,
-                        'raw_id'        => $wa->id,
-                        'type'          => 'whatsapp',
-                        'type_label'    => 'WhatsApp',
-                        'title'         => $customerName ?: 'WhatsApp',
-                        'date'          => $wa->scheduled_at->format('Y-m-d'),
-                        'display_date'  => $wa->scheduled_at->format('d/m/Y'),
-                        'time'          => $time12,
-                        'time_24'       => $timeStr,
-                        'time_12'       => $time12,
-                        'customer_name' => $customerName ?: 'WhatsApp Notification',
-                        'company_name'  => $companyName,
-                        'product_type'  => $wa->assignBase?->product?->name ?? $wa->assignBase?->product_type ?? null,
-                        'mobile'        => $mobile ?: '—',
-                        'amount'        => $params[0] ?? null,
-                        'due_date'      => $params[1] ?? null,
-                        'template_name' => $wa->template_name,
-                        'header_image'  => $wa->header_image_path ? Storage::disk('public')->url($wa->header_image_path) : null,
-                        'source'        => $wa->source ?? 'web',
-                        'status'        => ucfirst($wa->status ?? 'pending'),
-                        'emp_id'        => $wa->emp_id,
-                        'added_by'      => $creatorName,
+                        'id'               => 'wa_' . $wa->id,
+                        'raw_id'           => $wa->id,
+                        'type'             => 'whatsapp',
+                        'type_label'       => 'WhatsApp',
+                        'icon'             => 'fab fa-whatsapp',
+                        'title'            => $customerName ?: 'WhatsApp',
+                        'date'             => $wa->scheduled_at->format('Y-m-d'),
+                        'display_date'     => $wa->scheduled_at->format('d/m/Y'),
+                        'time'             => $time12,       // 12-hour AM/PM format (e.g. 02:00 PM)
+                        'time_12'          => $time12,       // 12-hour AM/PM format (e.g. 02:00 PM)
+                        'time_24'          => $time24,       // 24-hour format (e.g. 14:00)
+                        'customer_name'    => $customerName ?: 'WhatsApp Notification',
+                        'company_name'     => $companyName,
+                        'product_type'     => $wa->assignBase?->product?->name ?? $wa->assignBase?->product_type ?? null,
+                        'customer_status'  => $wa->assignBase?->status ?? 'NEW',
+                        'mobile'           => $mobile ?: '—',
+                        'amount'           => $params[0] ?? null,
+                        'due_date'         => $params[1] ?? null,
+                        'template_name'    => $wa->template_name,
+                        'header_image'     => $wa->header_image_path ? Storage::disk('public')->url($wa->header_image_path) : null,
+                        'source'           => $wa->source ?? 'web',
+                        'status'           => $status,
+                        'status_class'     => $statusClass,
+                        'emp_id'           => $wa->emp_id,
+                        'added_by'         => $creatorName,
+                        'assign_base_id'   => $wa->assign_base_id,
+                        'loan_details_url' => $wa->assign_base_id ? url('/loan-application-details/' . $wa->assign_base_id) : null,
+                        'loan_application' => $loanApp ? [
+                            'id'              => $loanApp->id,
+                            'app_number'      => $loanApp->app_number ?? '—',
+                            'logged_bank'     => $loanApp->logged_bank ?? '—',
+                            'category'        => $loanApp->category ?? '—',
+                            'promo_code'      => $loanApp->promo_code ?? '—',
+                            'req_amount'      => $loanApp->req_amount ? number_format($loanApp->req_amount) : '—',
+                            'approved_amount' => $loanApp->approved_amount ? number_format($loanApp->approved_amount) : '—',
+                            'status'          => $loanApp->status ?? '—',
+                            'login_date'      => $loanApp->login_date ? $loanApp->login_date->format('d/m/Y') : '—',
+                            'bank_manager'    => $loanApp->bank_manager ?? '—',
+                            'location'        => $loanApp->location ?? '—',
+                            'remarks'         => $loanApp->remarks ?? '—',
+                        ] : null,
                     ];
                 }
             }
@@ -1121,6 +1187,31 @@ class AuthApiController extends Controller
                 'status'  => true,
                 'message' => 'Notification(s) marked as completed successfully',
                 'marked_ids' => $ids
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all customer notes / reminder history for an assigned base
+     */
+    public function getCustomerNotes(Request $request, $assignBaseId = null)
+    {
+        try {
+            $assignBaseId = $assignBaseId ?? $request->input('assign_base_id');
+
+            $notes = Notification::with('employee:id,name')
+                        ->where('assign_base_id', $assignBaseId)
+                        ->orderBy('id', 'desc')
+                        ->get();
+
+            return response()->json([
+                'status' => true,
+                'data'   => $notes
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -9,6 +9,10 @@ use App\Imports\AssignBaseImport;
 use App\Models\User;
 use App\Models\AssignBase;
 use App\Models\Product;
+use App\Models\Notification;
+use App\Models\LoanApplication;
+use App\Models\WhatsappNotification;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AssignBaseController extends Controller
@@ -49,6 +53,40 @@ class AssignBaseController extends Controller
             $query->whereDate('assign_date', '<=', $request->to_date);
         }
 
+        /* ========== BULK DELETE FILTERED RECORDS ========== */
+        if ($request->input('action') === 'delete') {
+            $ids = (clone $query)->pluck('id')->toArray();
+            $count = count($ids);
+
+            if ($count === 0) {
+                return redirect()
+                    ->route('assign-base.index', $request->except('action'))
+                    ->with('error', 'No matching records found to delete.');
+            }
+
+            DB::beginTransaction();
+            try {
+                // Delete or disassociate child references first to prevent foreign key errors
+                Notification::whereIn('assign_base_id', $ids)->delete();
+                LoanApplication::whereIn('assign_base_id', $ids)->delete();
+                WhatsappNotification::whereIn('assign_base_id', $ids)->update(['assign_base_id' => null]);
+
+                // Delete the matching AssignBase records
+                AssignBase::whereIn('id', $ids)->delete();
+
+                DB::commit();
+
+                return redirect()
+                    ->route('assign-base.index', $request->except('action'))
+                    ->with('success', "{$count} record(s) deleted successfully!");
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return redirect()
+                    ->route('assign-base.index', $request->except('action'))
+                    ->with('error', 'Failed to delete records: ' . $e->getMessage());
+            }
+        }
+
         // Pagination (DB level – BEST)
         $paginatedRows = $query
             ->orderBy('assign_date', 'desc')
@@ -84,10 +122,32 @@ class AssignBaseController extends Controller
             'id' => 'required|integer'
         ]);
 
-        AssignBase::where('id', $request->id)->delete();
+        $assignBase = AssignBase::find($request->id);
+        if (!$assignBase) {
+            return redirect()
+                ->route('assign-base.index')
+                ->with('error', 'Record not found or already deleted.');
+        }
 
-        return redirect()
-            ->route('assign-base.index')
-            ->with('success', 'Record deleted successfully!');
+        DB::beginTransaction();
+        try {
+            // Delete or disassociate child references first to satisfy foreign key constraints
+            Notification::where('assign_base_id', $request->id)->delete();
+            LoanApplication::where('assign_base_id', $request->id)->delete();
+            WhatsappNotification::where('assign_base_id', $request->id)->update(['assign_base_id' => null]);
+
+            $assignBase->delete();
+
+            DB::commit();
+
+            return redirect()
+                ->route('assign-base.index')
+                ->with('success', 'Record deleted successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()
+                ->route('assign-base.index')
+                ->with('error', 'Failed to delete record: ' . $e->getMessage());
+        }
     }
 }

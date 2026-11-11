@@ -57,7 +57,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/assign-base/import', [AssignBaseController::class, 'import'])
         ->name('assign-base.import');
 
-    Route::delete('/assign-base/delete', [AssignBaseController::class, 'delete'])
+    Route::match(['delete', 'post'], '/assign-base/delete', [AssignBaseController::class, 'delete'])
         ->name('assign-base.delete');
 
     Route::get('/whatsapp', [WhatsappNotificationController::class, 'index'])

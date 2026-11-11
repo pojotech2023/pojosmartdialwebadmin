@@ -1543,8 +1543,8 @@
 // =========================================================
 
 const CAL_ROUTES = {
-    events: "{{ route('calendar.events') }}",
-    markSeen: "{{ route('dashboard.notifications.mark-seen') }}",
+    events: "{{ url('/calendar/events') }}",
+    markSeen: "{{ url('/dashboard/notifications/mark-seen') }}",
     csrf: "{{ csrf_token() }}",
 };
 
@@ -1594,6 +1594,7 @@ function timeToMinutes(t) {
 
 document.addEventListener('DOMContentLoaded', function() {
     updateTitle();
+    renderMonthGrid(); // Render dates immediately on load
     fetchCalendarEvents();
 });
 
@@ -1618,6 +1619,7 @@ function prevMonth() {
         currentYear--;
     }
     updateTitle();
+    renderMonthGrid();
     fetchCalendarEvents();
 }
 
@@ -1628,6 +1630,7 @@ function nextMonth() {
         currentYear++;
     }
     updateTitle();
+    renderMonthGrid();
     fetchCalendarEvents();
 }
 
@@ -1636,6 +1639,7 @@ function goToToday() {
     currentYear = today.getFullYear();
     currentMonth = today.getMonth() + 1;
     updateTitle();
+    renderMonthGrid();
     fetchCalendarEvents();
 }
 
@@ -1646,12 +1650,12 @@ function updateTitle() {
 // Fetch events from server
 function fetchCalendarEvents() {
     const loader = document.getElementById('calLoader');
-    loader.style.display = 'flex';
+    if (loader) loader.style.display = 'flex';
 
     const empSelect = document.getElementById('employeeFilter');
     const employeeId = empSelect ? empSelect.value : 'all';
-    const typeFilter = document.getElementById('typeFilter').value;
-    const statusFilter = document.getElementById('statusFilter').value;
+    const typeFilter = document.getElementById('typeFilter') ? document.getElementById('typeFilter').value : 'all';
+    const statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : 'all';
 
     const params = new URLSearchParams({
         year: currentYear,
@@ -1661,34 +1665,54 @@ function fetchCalendarEvents() {
         status: statusFilter
     });
 
-    fetch(`${CAL_ROUTES.events}?${params.toString()}`, {
-        headers: { 'Accept': 'application/json' }
+    // Ensure URL matches current protocol to prevent mixed-content blocking
+    let fetchUrl = CAL_ROUTES.events;
+    if (fetchUrl.startsWith('http://') && window.location.protocol === 'https:') {
+        fetchUrl = fetchUrl.replace('http://', 'https://');
+    }
+
+    fetch(`${fetchUrl}?${params.toString()}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
-    .then(r => r.json())
+    .then(async r => {
+        if (!r.ok) {
+            const errTxt = await r.text();
+            throw new Error(`HTTP ${r.status}: ${errTxt.substring(0, 100)}`);
+        }
+        return r.json();
+    })
     .then(data => {
-        loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
         if (data.success) {
             calendarEventsData = data.events_by_date || {};
             calendarAllEvents = data.events || [];
 
             // Update stats
-            document.getElementById('statTotal').textContent = data.counts.total || 0;
-            document.getElementById('statReminders').textContent = data.counts.reminders || 0;
-            document.getElementById('statWhatsapp').textContent = data.counts.whatsapp || 0;
-            document.getElementById('statDue').textContent = data.counts.due || 0;
+            if (data.counts) {
+                document.getElementById('statTotal').textContent = data.counts.total || 0;
+                document.getElementById('statReminders').textContent = data.counts.reminders || 0;
+                document.getElementById('statWhatsapp').textContent = data.counts.whatsapp || 0;
+                document.getElementById('statDue').textContent = data.counts.due || 0;
+            }
 
-            // Render view
+            // Render view with events
             renderMonthGrid();
             if (viewMode === 'list') {
                 renderAgendaList();
             }
         } else {
-            console.error('Server error:', data.error);
+            console.error('Server error in calendar events:', data.error);
+            renderMonthGrid();
         }
     })
     .catch(err => {
-        loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
         console.error('Failed to load calendar events:', err);
+        // Ensure month grid stays rendered even if API call fails
+        renderMonthGrid();
     });
 }
 
@@ -2403,6 +2427,17 @@ function renderModalEvents() {
                         </div>
                     </div>
                 </div>
+
+                ${remainingCount > 0 ? `
+                    <div class="card-more-activities-hint" onclick="openFullscreenDetailView('${grp.key}')" style="cursor:pointer;margin:10px 0;padding:10px 14px;background:#f8fafc;border:1px dashed #c7d2fe;border-radius:10px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:#475569;transition:all 0.2s ease;">
+                        <span style="font-weight:700;color:var(--primary);">
+                            <i class="fas fa-layer-group" style="margin-right:6px;"></i> +${remainingCount} more scheduled ${remainingCount === 1 ? 'activity' : 'activities'} by ${escapeHtml(grp.added_by)}
+                        </span>
+                        <span style="font-weight:600;color:#6366f1;">
+                            Click "View Details" to see all full screen <i class="fas fa-arrow-right" style="margin-left:4px;"></i>
+                        </span>
+                    </div>
+                ` : ''}
 
                 <!-- Action Bar for this customer -->
                 <div class="fullpage-actions">

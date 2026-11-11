@@ -21,6 +21,12 @@
         <div class="success-msg">{{ session('success') }}</div>
     @endif
 
+    @if(session('error'))
+        <div class="error-msg" style="background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:12px;font-size:13px;font-weight:600;">
+            <i class="fas fa-exclamation-circle" style="margin-right:6px;"></i> {{ session('error') }}
+        </div>
+    @endif
+
     <form method="POST"
           action="{{ route('assign-base.import') }}"
           enctype="multipart/form-data">

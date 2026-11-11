@@ -98,9 +98,18 @@ class CalendarController extends Controller
                     if (!$n->notification_date) continue;
 
                     $dateStr = $n->notification_date->format('Y-m-d');
-                    $timeStr = $n->notification_time ? substr($n->notification_time, 0, 5) : '00:00';
-                    $time12 = ($timeStr !== '00:00') ? Carbon::createFromFormat('H:i', $timeStr)->format('h:i A') : '—';
-                    $notifDatetime = Carbon::parse($dateStr . ' ' . $timeStr);
+                    $time24 = '00:00';
+                    $time12 = '—';
+                    if ($n->notification_time) {
+                        try {
+                            $time12 = Carbon::parse($n->notification_time)->format('h:i A');
+                            $time24 = Carbon::parse($n->notification_time)->format('H:i');
+                        } catch (\Exception $e) {
+                            $time24 = substr($n->notification_time, 0, 5);
+                            $time12 = $time24;
+                        }
+                    }
+                    $notifDatetime = Carbon::parse($dateStr . ' ' . $time24);
 
                     $isDue = false;
                     $isSent = (bool) $n->is_sent;
@@ -137,7 +146,7 @@ class CalendarController extends Controller
                         'date'              => $dateStr,
                         'display_date'      => $n->notification_date->format('d/m/Y'),
                         'time'              => $time12,
-                        'time_24'           => $timeStr,
+                        'time_24'           => $time24,
                         'time_12'           => $time12,
                         'customer_name'     => $n->assignBase?->customer_name ?? '—',
                         'company_name'      => $n->assignBase?->company_name ?? '—',
@@ -251,7 +260,7 @@ class CalendarController extends Controller
                         'date'              => $dateStr,
                         'display_date'      => $wa->scheduled_at->format('d/m/Y'),
                         'time'              => $time12,
-                        'time_24'           => $timeStr,
+                        'time_24'           => $time24,
                         'time_12'           => $time12,
                         'customer_name'     => $customerName ?: 'WhatsApp Notification',
                         'company_name'      => $companyName,
