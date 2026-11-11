@@ -652,12 +652,22 @@ class AuthApiController extends Controller
                 'id'                  => 'nullable|integer|exists:notifications,id',
                 'emp_id'              => 'required|integer|exists:users,id',
                 'assign_base_id'      => 'required|integer|exists:assign_bases,id',
-                'notification_date'   => 'required|date_format:d/m/Y',
-                'notification_time'   => 'required|date_format:H:i',
+                'notification_date'   => 'required|string',
+                'notification_time'   => 'required|string',
                 'remarks'             => 'required|string',
+                'status'              => 'nullable|string|max:100',
+                'appointment_date'    => 'nullable|string|max:50',
+                'appointment_time'    => 'nullable|string|max:50',
+                'location'            => 'nullable|string',
+                'alternate_number'    => 'nullable|string|max:50',
             ]);
 
-            $notificationDate = Carbon::createFromFormat('d/m/Y', $request->notification_date)->format('Y-m-d');
+            $rawDate = $request->notification_date;
+            if (strpos($rawDate, '/') !== false) {
+                $notificationDate = Carbon::createFromFormat('d/m/Y', $rawDate)->format('Y-m-d');
+            } else {
+                $notificationDate = Carbon::parse($rawDate)->format('Y-m-d');
+            }
 
             if ($request->filled('id')) {
                 $notification = Notification::where('id', $request->id)
@@ -676,6 +686,11 @@ class AuthApiController extends Controller
                     'notification_date' => $notificationDate,
                     'notification_time' => $request->notification_time,
                     'remarks'           => $request->remarks,
+                    'status'            => $request->status,
+                    'appointment_date'  => $request->appointment_date,
+                    'appointment_time'  => $request->appointment_time,
+                    'location'          => $request->location,
+                    'alternate_number'  => $request->alternate_number,
                 ]);
 
                 $message = 'Notification updated successfully';
@@ -686,6 +701,11 @@ class AuthApiController extends Controller
                     'notification_date' => $notificationDate,
                     'notification_time' => $request->notification_time,
                     'remarks'           => $request->remarks,
+                    'status'            => $request->status,
+                    'appointment_date'  => $request->appointment_date,
+                    'appointment_time'  => $request->appointment_time,
+                    'location'          => $request->location,
+                    'alternate_number'  => $request->alternate_number,
                     'is_sent'           => false,
                 ]);
 
@@ -704,10 +724,15 @@ class AuthApiController extends Controller
                     'id'                => $n->id,
                     'emp_id'            => $n->emp_id,
                     'assign_base_id'    => $n->assign_base_id,
-                    'notification_date' => Carbon::parse($n->notification_date)->format('d/m/Y'),
+                    'notification_date' => $n->notification_date ? Carbon::parse($n->notification_date)->format('d/m/Y') : null,
                     'notification_time' => $n->notification_time,
                     'remarks'           => $n->remarks,
-                    'is_sent'           => $n->is_sent,
+                    'is_sent'           => (bool) $n->is_sent,
+                    'status'            => $n->status,
+                    'appointment_date'  => $n->appointment_date,
+                    'appointment_time'  => $n->appointment_time,
+                    'location'          => $n->location,
+                    'alternate_number'  => $n->alternate_number,
                 ]);
 
             return response()->json([
@@ -717,10 +742,15 @@ class AuthApiController extends Controller
                     'id'                => $notification->id,
                     'emp_id'            => $notification->emp_id,
                     'assign_base_id'    => $notification->assign_base_id,
-                    'notification_date' => Carbon::parse($notification->notification_date)->format('d/m/Y'),
+                    'notification_date' => $notification->notification_date ? Carbon::parse($notification->notification_date)->format('d/m/Y') : null,
                     'notification_time' => $notification->notification_time,
                     'remarks'           => $notification->remarks,
-                    'is_sent'           => $notification->is_sent,
+                    'is_sent'           => (bool) $notification->is_sent,
+                    'status'            => $notification->status,
+                    'appointment_date'  => $notification->appointment_date,
+                    'appointment_time'  => $notification->appointment_time,
+                    'location'          => $notification->location,
+                    'alternate_number'  => $notification->alternate_number,
                 ],
                 'notification_list' => $notificationList,
             ]);
@@ -749,10 +779,15 @@ class AuthApiController extends Controller
             return response()->json([
                 'status' => true,
                 'data' => [
-                    'notification_date' => \Carbon\Carbon::parse($notification->notification_date)->format('d/m/Y'),
+                    'notification_date' => $notification->notification_date ? \Carbon\Carbon::parse($notification->notification_date)->format('d/m/Y') : null,
                     'notification_time' => $notification->notification_time,
-                    'remarks' => $notification->remarks,
-                    'is_sent' => $notification->is_sent
+                    'remarks'           => $notification->remarks,
+                    'is_sent'           => (bool) $notification->is_sent,
+                    'status'            => $notification->status,
+                    'appointment_date'  => $notification->appointment_date,
+                    'appointment_time'  => $notification->appointment_time,
+                    'location'          => $notification->location,
+                    'alternate_number'  => $notification->alternate_number,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -1119,6 +1154,11 @@ class AuthApiController extends Controller
                         'remarks'          => $n->remarks ?? '',
                         'status'           => $statusLabel,
                         'status_class'     => $statusClass,
+                        'note_status'      => $n->status,
+                        'appointment_date' => $n->appointment_date,
+                        'appointment_time' => $n->appointment_time,
+                        'location'         => $n->location,
+                        'alternate_number' => $n->alternate_number,
                         'is_sent'          => $isSent,
                         'is_due'           => $isDue,
                         'emp_id'           => $n->emp_id,
@@ -1301,7 +1341,29 @@ class AuthApiController extends Controller
             $notes = Notification::with('employee:id,name')
                         ->where('assign_base_id', $assignBaseId)
                         ->orderBy('id', 'desc')
-                        ->get();
+                        ->get()
+                        ->map(function ($n) {
+                            return [
+                                'id'                => $n->id,
+                                'assign_base_id'    => $n->assign_base_id,
+                                'emp_id'            => $n->emp_id,
+                                'notification_date' => $n->notification_date ? Carbon::parse($n->notification_date)->format('d/m/Y') : null,
+                                'notification_time' => $n->notification_time,
+                                'remarks'           => $n->remarks,
+                                'is_sent'           => (bool) $n->is_sent,
+                                'status'            => $n->status,
+                                'appointment_date'  => $n->appointment_date,
+                                'appointment_time'  => $n->appointment_time,
+                                'location'          => $n->location,
+                                'alternate_number'  => $n->alternate_number,
+                                'employee'          => $n->employee ? [
+                                    'id'   => $n->employee->id,
+                                    'name' => $n->employee->name,
+                                ] : null,
+                                'created_at'        => $n->created_at ? $n->created_at->toDateTimeString() : null,
+                                'updated_at'        => $n->updated_at ? $n->updated_at->toDateTimeString() : null,
+                            ];
+                        });
 
             return response()->json([
                 'status' => true,

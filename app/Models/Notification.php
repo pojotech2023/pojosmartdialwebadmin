@@ -13,6 +13,11 @@ class Notification extends Model
         'notification_time',
         'remarks',
         'is_sent',
+        'status',
+        'appointment_date',
+        'appointment_time',
+        'location',
+        'alternate_number',
     ];
     public function assignBase()
     {

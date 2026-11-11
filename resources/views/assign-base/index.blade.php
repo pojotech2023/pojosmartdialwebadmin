@@ -91,7 +91,7 @@
             <label class="form-label">From Date</label>
             <input type="date"
                 name="from_date"
-                value="{{ request('from_date', now()->toDateString()) }}"
+                value="{{ request('from_date') }}"
                 max="{{ now()->toDateString() }}">
         </div>
 
@@ -100,7 +100,7 @@
             <label class="form-label">To Date</label>
             <input type="date"
                 name="to_date"
-                value="{{ request('to_date', now()->toDateString()) }}"
+                value="{{ request('to_date') }}"
                 max="{{ now()->toDateString() }}">
         </div>
 
@@ -184,6 +184,19 @@
 
 <div style="margin-top:15px">
     {{ $paginatedRows->onEachSide(1)->links('vendor.pagination.custom') }}
+</div>
+@else
+<div class="card-box" style="margin-top:12px;text-align:center;padding:48px 20px;">
+    <div style="width:64px;height:64px;margin:0 auto 16px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:24px;">
+        <i class="fas fa-inbox"></i>
+    </div>
+    <div style="font-size:16px;font-weight:700;color:#334155;margin-bottom:6px;">No Records Found</div>
+    <div style="font-size:13.5px;color:#64748b;max-width:420px;margin:0 auto 18px;line-height:1.5;">
+        No assigned leads match your selected filters or date range. Try clearing your filters or selecting a different date range.
+    </div>
+    <a href="{{ route('assign-base.index') }}" class="btn-upload" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:9px 18px;font-size:13px;">
+        <i class="fas fa-rotate-left"></i> Reset Filters / View All
+    </a>
 </div>
 @endif
 
