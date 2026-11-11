@@ -198,44 +198,72 @@ class AuthApiController extends Controller
     {
         $request->validate([
             'emp_id' => 'required|integer',
-            'assign_date' => 'required|date_format:d/m/Y',  // Accept DD/MM/YYYY format
-            'status'      => 'nullable|in:NEW,CONFIRMED,FOLLOW UP,NOPE',
-
-
+            'status' => 'nullable|string',
         ]);
 
         // Check if employee exists
         $user = User::find($request->emp_id);
         if (!$user) {
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'Employee not found',
             ], 404);
         }
 
-        // Parse input date to Y-m-d for DB comparison
-        $assignDate = Carbon::createFromFormat('d/m/Y', $request->assign_date)->format('Y-m-d');
+        // Accept assign_date or date in d/m/Y or Y-m-d format
+        $rawDate = $request->input('assign_date', $request->input('date'));
+        if (!$rawDate) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'The assign_date or date field is required.',
+            ], 422);
+        }
 
-        // Query with filter: emp_id, assign_date, and status = 'NEW'
+        try {
+            if (str_contains($rawDate, '/')) {
+                $assignDate = Carbon::createFromFormat('d/m/Y', $rawDate)->format('Y-m-d');
+            } else {
+                $assignDate = Carbon::parse($rawDate)->format('Y-m-d');
+            }
+        } catch (\Exception $e) {
+            $assignDate = Carbon::parse($rawDate)->format('Y-m-d');
+        }
+
+        $defaultProduct = \App\Models\Product::where('is_active', true)->first();
+
+        // Query with filter: emp_id, assign_date, and optional status
         $data = AssignBase::with('product')
             ->where('emp_id', $request->emp_id)
             ->where('assign_date', '=', $assignDate)
-            ->when($request->status, fn ($q) => $q->where('status', $request->status))
+            ->when($request->filled('status') && strtoupper($request->status) !== 'ALL', fn ($q) => $q->where('status', $request->status))
             ->get()
-            ->map(fn($row) => [
-                'id'            => $row->id,
-                'customer_name' => $row->customer_name,
-                'company_name'  => $row->company_name,
-                'product_id'    => $row->product_id,
-                'product_type'  => $row->product?->name ?? $row->product_type,
-                'status'        => $row->status,
-                'mobile'        => $row->mobile,
-                'date'          => Carbon::parse($row->assign_date)->format('d/m/Y'),
-            ]);
+            ->map(function($row) use ($defaultProduct) {
+                $productId = $row->product_id ?? $row->product?->id;
+                $productType = $row->product?->name ?? $row->product_type;
+
+                // Ensure non-null return value as requested
+                if (!$productId && $defaultProduct) {
+                    $productId = $defaultProduct->id;
+                }
+                if (!$productType) {
+                    $productType = $defaultProduct?->name ?? 'Website';
+                }
+
+                return [
+                    'id'            => $row->id,
+                    'customer_name' => $row->customer_name,
+                    'company_name'  => $row->company_name,
+                    'product_id'    => (int) $productId,
+                    'product_type'  => (string) $productType,
+                    'status'        => $row->status ?? 'NEW',
+                    'mobile'        => $row->mobile ?? '—',
+                    'date'          => Carbon::parse($row->assign_date)->format('d/m/Y'),
+                ];
+            });
 
         return response()->json([
             'status' => true,
-            'data' => $data,
+            'data'   => $data,
         ]);
     }
   
@@ -296,14 +324,30 @@ class AuthApiController extends Controller
             // Validate input
             $request->validate([
                 'emp_id'       => 'required|integer|exists:users,id',
-                'name'         => 'required|string',
                 'company_name' => 'required|string',
                 'product_id'   => 'nullable|integer|exists:products,id',
                 'product_type' => 'nullable|string',
-                'status'       => 'required|in:NEW,CONFIRMED,FOLLOW UP,NOPE',
+                'status'       => 'nullable|string',
                 'mobile'       => 'required|string',
-                'date'         => 'required|date_format:d/m/Y',
             ]);
+
+            // Accept name or customer_name
+            $customerName = $request->input('customer_name', $request->input('name'));
+            if (!$customerName) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'The customer name is required.',
+                ], 422);
+            }
+
+            // Accept date or assign_date in d/m/Y or Y-m-d format
+            $rawDate = $request->input('date', $request->input('assign_date'));
+            if (!$rawDate) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'The date field is required.',
+                ], 422);
+            }
 
             // Check if employee exists
             $user = User::find($request->emp_id);
@@ -327,19 +371,47 @@ class AuthApiController extends Controller
                     ['is_active' => true]
                 );
                 $productId = $p->id;
+                $productType = $p->name;
+            } elseif ($productId && $productType) {
+                // If both provided, ensure product exists and name matches
+                $p = \App\Models\Product::find($productId);
+                if ($p) {
+                    $productType = $p->name;
+                } else {
+                    $p = \App\Models\Product::firstOrCreate(
+                        ['name' => trim($productType)],
+                        ['is_active' => true]
+                    );
+                    $productId = $p->id;
+                }
+            } else {
+                // Fallback to active default product if neither sent
+                $defaultProd = \App\Models\Product::where('is_active', true)->first();
+                if ($defaultProd) {
+                    $productId = $defaultProd->id;
+                    $productType = $defaultProd->name;
+                }
             }
 
             // Parse date to Y-m-d format
-            $assignDate = Carbon::createFromFormat('d/m/Y', $request->date)->format('Y-m-d');
+            try {
+                if (str_contains($rawDate, '/')) {
+                    $assignDate = Carbon::createFromFormat('d/m/Y', $rawDate)->format('Y-m-d');
+                } else {
+                    $assignDate = Carbon::parse($rawDate)->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                $assignDate = Carbon::parse($rawDate)->format('Y-m-d');
+            }
 
-            // Create new customer
+            // Create new customer with both product_id and product_type
             $customer = AssignBase::create([
                 'emp_id'        => $request->emp_id,
-                'customer_name' => $request->name,
+                'customer_name' => $customerName,
                 'company_name'  => $request->company_name,
-                'product_id'    => $productId,
-                'product_type'  => $productType,
-                'status'        => $request->status,
+                'product_id'    => $productId ? (int) $productId : null,
+                'product_type'  => $productType ? (string) $productType : null,
+                'status'        => $request->input('status', 'NEW'),
                 'mobile'        => $request->mobile,
                 'assign_date'   => $assignDate,
             ]);
@@ -967,6 +1039,7 @@ class AuthApiController extends Controller
             $typeFilter = $request->input('type', 'all');
             $items = [];
             $now = Carbon::now();
+            $defaultProduct = \App\Models\Product::where('is_active', true)->first();
 
             // 1. Reminders
             if ($typeFilter === 'all' || $typeFilter === 'reminder') {
@@ -1015,6 +1088,16 @@ class AuthApiController extends Controller
                     $creatorName = $n->employee?->name ?? 'Unknown';
                     $loanApp = $n->assignBase?->loanApplication;
 
+                    // Ensure non-null product_id and product_type
+                    $prodId = $n->assignBase?->product_id ?? $n->assignBase?->product?->id;
+                    $prodName = $n->assignBase?->product?->name ?? $n->assignBase?->product_type;
+                    if (!$prodId && $defaultProduct) {
+                        $prodId = $defaultProduct->id;
+                    }
+                    if (!$prodName) {
+                        $prodName = $defaultProduct?->name ?? 'Website';
+                    }
+
                     $items[] = [
                         'id'               => 'rem_' . $n->id,
                         'raw_id'           => $n->id,
@@ -1029,7 +1112,8 @@ class AuthApiController extends Controller
                         'time_24'          => $time24,       // 24-hour format (e.g. 14:00)
                         'customer_name'    => $n->assignBase?->customer_name ?? '—',
                         'company_name'     => $n->assignBase?->company_name ?? '—',
-                        'product_type'     => $n->assignBase?->product?->name ?? $n->assignBase?->product_type ?? null,
+                        'product_id'       => (int) $prodId,
+                        'product_type'     => (string) $prodName,
                         'customer_status'  => $n->assignBase?->status ?? 'NEW',
                         'mobile'           => $n->assignBase?->mobile ?? '—',
                         'remarks'          => $n->remarks ?? '',
@@ -1097,6 +1181,15 @@ class AuthApiController extends Controller
                     $status = ucfirst($wa->status ?? 'pending');
                     $statusClass = strtolower($wa->status ?? 'pending');
 
+                    $prodId = $wa->assignBase?->product_id ?? $wa->assignBase?->product?->id;
+                    $prodName = $wa->assignBase?->product?->name ?? $wa->assignBase?->product_type;
+                    if (!$prodId && $defaultProduct) {
+                        $prodId = $defaultProduct->id;
+                    }
+                    if (!$prodName) {
+                        $prodName = $defaultProduct?->name ?? 'Website';
+                    }
+
                     $items[] = [
                         'id'               => 'wa_' . $wa->id,
                         'raw_id'           => $wa->id,
@@ -1111,7 +1204,8 @@ class AuthApiController extends Controller
                         'time_24'          => $time24,       // 24-hour format (e.g. 14:00)
                         'customer_name'    => $customerName ?: 'WhatsApp Notification',
                         'company_name'     => $companyName,
-                        'product_type'     => $wa->assignBase?->product?->name ?? $wa->assignBase?->product_type ?? null,
+                        'product_id'       => (int) $prodId,
+                        'product_type'     => (string) $prodName,
                         'customer_status'  => $wa->assignBase?->status ?? 'NEW',
                         'mobile'           => $mobile ?: '—',
                         'amount'           => $params[0] ?? null,

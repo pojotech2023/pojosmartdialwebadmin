@@ -6,6 +6,7 @@ use App\Models\AssignBase;
 use App\Models\Notification;
 use App\Models\User;
 use App\Models\WhatsappNotification;
+use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -83,6 +84,8 @@ class CalendarController extends Controller
                 ->groupBy('emp_id')
                 ->pluck('total', 'emp_id');
 
+            $defaultProduct = Product::where('is_active', true)->first();
+
             // 1. Reminders (from notifications table)
             if ($typeFilter === 'all' || $typeFilter === 'reminder') {
                 $notifQuery = Notification::with(['employee.application', 'assignBase.product', 'assignBase.loanApplication'])
@@ -134,6 +137,15 @@ class CalendarController extends Controller
                     $empId = $n->emp_id ?? $n->employee?->id;
                     $loanApp = $n->assignBase?->loanApplication;
 
+                    $prodId = $n->assignBase?->product_id ?? $n->assignBase?->product?->id;
+                    $prodName = $n->assignBase?->product?->name ?? $n->assignBase?->product_type;
+                    if (!$prodId && $defaultProduct) {
+                        $prodId = $defaultProduct->id;
+                    }
+                    if (!$prodName) {
+                        $prodName = $defaultProduct?->name ?? 'Website';
+                    }
+
                     $items[] = [
                         'id'                => 'rem_' . $n->id,
                         'raw_id'            => $n->id,
@@ -150,7 +162,8 @@ class CalendarController extends Controller
                         'time_12'           => $time12,
                         'customer_name'     => $n->assignBase?->customer_name ?? '—',
                         'company_name'      => $n->assignBase?->company_name ?? '—',
-                        'product_type'      => $n->assignBase?->product?->name ?? $n->assignBase?->product_type ?? null,
+                        'product_id'        => (int) $prodId,
+                        'product_type'      => (string) $prodName,
                         'mobile'            => $n->assignBase?->mobile ?? '—',
                         'customer_status'   => $n->assignBase?->status ?? '—',
                         'remarks'           => $n->remarks ?? '',
@@ -248,6 +261,15 @@ class CalendarController extends Controller
                     $empId = $wa->emp_id ?? $wa->employee?->id;
                     $loanApp = $wa->assignBase?->loanApplication;
 
+                    $prodId = $wa->assignBase?->product_id ?? $wa->assignBase?->product?->id;
+                    $prodName = $wa->assignBase?->product?->name ?? $wa->assignBase?->product_type;
+                    if (!$prodId && $defaultProduct) {
+                        $prodId = $defaultProduct->id;
+                    }
+                    if (!$prodName) {
+                        $prodName = $defaultProduct?->name ?? 'Website';
+                    }
+
                     $items[] = [
                         'id'                => 'wa_' . $wa->id,
                         'raw_id'            => $wa->id,
@@ -264,7 +286,8 @@ class CalendarController extends Controller
                         'time_12'           => $time12,
                         'customer_name'     => $customerName ?: 'WhatsApp Notification',
                         'company_name'      => $companyName,
-                        'product_type'      => $wa->assignBase?->product?->name ?? $wa->assignBase?->product_type ?? null,
+                        'product_id'        => (int) $prodId,
+                        'product_type'      => (string) $prodName,
                         'mobile'            => $mobile ?: '—',
                         'amount'            => $amount,
                         'due_date'          => $dueDate,

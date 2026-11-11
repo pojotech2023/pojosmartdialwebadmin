@@ -5,7 +5,8 @@ use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\CustomerController;
 
 Route::post('/login', [AuthApiController::class, 'login']);
-Route::post('/assign-base-by-employee', [AuthApiController::class, 'assignBaseByEmployee']);
+Route::match(['get', 'post'], '/assign-base', [AuthApiController::class, 'assignBaseByEmployee']);
+Route::match(['get', 'post'], '/assign-base-by-employee', [AuthApiController::class, 'assignBaseByEmployee']);
 Route::post('/update-single-status', [AuthApiController::class, 'updateAssignBaseStatus']);
 Route::post('/update-password', [AuthApiController::class, 'updatePassword']);
 Route::post('/add-customer', [AuthApiController::class, 'addCustomer']);
