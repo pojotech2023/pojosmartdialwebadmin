@@ -37,6 +37,16 @@
 
 <div class="card-box">
 
+    @if(isset($errors) && $errors->any())
+        <div style="background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:13.5px;font-weight:600;">
+            <ul style="margin:0;padding-left:18px;">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('employees.store') }}">
         @csrf
 
@@ -52,12 +62,37 @@
             </tr>
 
             <tr>
+                <td class="label">Role</td>
+                <td>
+                    <select name="role" class="cal-select" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#fff;" required>
+                        <option value="Telecaller" {{ old('role', 'Telecaller') === 'Telecaller' ? 'selected' : '' }}>
+                            Telecaller (Mobile App Login)
+                        </option>
+                        <option value="Account" {{ old('role') === 'Account' ? 'selected' : '' }}>
+                            Account (Web Portal Login)
+                        </option>
+                    </select>
+                </td>
+            </tr>
+
+            <tr>
                 <td class="label">Mobile Number</td>
                 <td>
                     <input type="text"
                            name="mobile"
+                           value="{{ old('mobile') }}"
                            placeholder="Enter mobile number"
                            required>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">Email ID (Optional)</td>
+                <td>
+                    <input type="email"
+                           name="email"
+                           value="{{ old('email') }}"
+                           placeholder="Enter email ID (optional for web login)">
                 </td>
             </tr>
 

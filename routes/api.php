@@ -48,3 +48,8 @@ Route::match(['post', 'put'], '/telecaller-statuses/update', [AuthApiController:
 Route::match(['post', 'put'], '/telecaller-statuses/{id}/update', [AuthApiController::class, 'updateTelecallerStatus']);
 Route::match(['post', 'delete'], '/telecaller-statuses/delete', [AuthApiController::class, 'deleteTelecallerStatus']);
 Route::match(['post', 'delete'], '/telecaller-statuses/{id}/delete', [AuthApiController::class, 'deleteTelecallerStatus']);
+
+// Account Users API (for Mobile App lead assignment to Accounts)
+Route::match(['get', 'post'], '/accounts', [AuthApiController::class, 'getAccountUsers']);
+Route::match(['get', 'post'], '/account-users', [AuthApiController::class, 'getAccountUsers']);
+Route::match(['get', 'post'], '/account-employees', [AuthApiController::class, 'getAccountUsers']);

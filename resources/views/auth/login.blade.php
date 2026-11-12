@@ -234,13 +234,13 @@
             @csrf
 
             <div class="field">
-                <label class="label">Email ID</label>
+                <label class="label">Email ID / Mobile Number</label>
                 <div class="input-wrapper">
                     <input class="input"
-                           type="email"
+                           type="text"
                            name="email"
                            value="{{ old('email') }}"
-                           placeholder="Enter email ID"
+                           placeholder="Enter registered email or mobile number"
                            required>
                 </div>
             </div>

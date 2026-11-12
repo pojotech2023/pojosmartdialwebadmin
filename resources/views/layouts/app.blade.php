@@ -86,7 +86,12 @@
     <div class="topbar">
         <div class="topbar-title">@yield('page-title', 'Dashboard')</div>
         <div class="topbar-user">
-            <span>{{ auth()->user()->name ?? '' }}</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;">
+                <span style="font-weight:700;color:#0f172a;">{{ auth()->user()->name ?? '' }}</span>
+                <span style="font-size:10.5px;font-weight:800;color:{{ auth()->user() && auth()->user()->isAccount() ? '#047857' : (auth()->user() && auth()->user()->isAdmin() ? '#b45309' : '#4338ca') }};text-transform:uppercase;letter-spacing:0.04em;">
+                    {{ auth()->user()->role ?? (auth()->user() && auth()->user()->isAdmin() ? 'Admin' : 'Account') }}
+                </span>
+            </div>
             <div class="topbar-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}</div>
         </div>
     </div>

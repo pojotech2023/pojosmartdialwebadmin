@@ -36,18 +36,21 @@ class AuthApiController extends Controller
             ], 401);
         }
 
-        // Success response (ONLY THAT EMPLOYEE)
+        // Success response
         return response()->json([
-            'status'  => true,
-            'message' => 'Login successful',
-            'application_id' => $user->application_id,
+            'status'           => true,
+            'message'          => 'Login successful',
+            'application_id'   => $user->application_id,
             'application_type' => $user->application->name ?? null,
+            'role'             => $user->role ?? 'Telecaller',
+            'is_telecaller'    => $user->isTelecaller(),
+            'is_account'       => $user->isAccount(),
             'data' => [
                 'emp_id' => $user->id,
                 'name'   => $user->name,
                 'mobile' => $user->mobile,
+                'role'   => $user->role ?? 'Telecaller',
                 'joined' => $user->created_at->format('d-m-Y'),
-                
             ]
         ]);
     }
@@ -232,7 +235,7 @@ class AuthApiController extends Controller
         $defaultProduct = \App\Models\Product::where('is_active', true)->first();
 
         // Query with filter: emp_id, assign_date, and optional status
-        $data = AssignBase::with('product')
+        $data = AssignBase::with(['product', 'employee'])
             ->where('emp_id', $request->emp_id)
             ->where('assign_date', '=', $assignDate)
             ->when($request->filled('status') && strtoupper($request->status) !== 'ALL', fn ($q) => $q->where('status', $request->status))
@@ -249,15 +252,23 @@ class AuthApiController extends Controller
                     $productType = $defaultProduct?->name ?? 'Website';
                 }
 
+                $empRole = $row->employee?->role ?? 'Telecaller';
+                $isAccount = strtolower($empRole) === 'account';
+
                 return [
-                    'id'            => $row->id,
-                    'customer_name' => $row->customer_name,
-                    'company_name'  => $row->company_name,
-                    'product_id'    => (int) $productId,
-                    'product_type'  => (string) $productType,
-                    'status'        => $row->status ?? 'NEW',
-                    'mobile'        => $row->mobile ?? '—',
-                    'date'          => Carbon::parse($row->assign_date)->format('d/m/Y'),
+                    'id'                  => $row->id,
+                    'emp_id'              => $row->emp_id,
+                    'employee_name'       => $row->employee?->name ?? '—',
+                    'employee_role'       => $empRole,
+                    'is_account'          => $isAccount,
+                    'assigned_to_account' => $isAccount,
+                    'customer_name'       => $row->customer_name,
+                    'company_name'        => $row->company_name,
+                    'product_id'          => (int) $productId,
+                    'product_type'        => (string) $productType,
+                    'status'              => $row->status ?? 'NEW',
+                    'mobile'              => $row->mobile ?? '—',
+                    'date'                => Carbon::parse($row->assign_date)->format('d/m/Y'),
                 ];
             });
 
@@ -420,15 +431,19 @@ class AuthApiController extends Controller
                 'status'  => true,
                 'message' => 'Customer added successfully',
                 'data' => [
-                    'assign_base_id' => $customer->id,
-                    'emp_id'         => $customer->emp_id,
-                    'customer_name'  => $customer->customer_name,
-                    'company_name'   => $customer->company_name,
-                    'product_id'     => $customer->product_id,
-                    'product_type'   => $customer->product_type,
-                    'status'         => $customer->status,
-                    'mobile'         => $customer->mobile,
-                    'assign_date'    => Carbon::parse($customer->assign_date)->format('d/m/Y'),
+                    'assign_base_id'      => $customer->id,
+                    'emp_id'              => $customer->emp_id,
+                    'employee_name'       => $user->name,
+                    'employee_role'       => $user->role ?? 'Telecaller',
+                    'is_account'          => strtolower($user->role ?? '') === 'account',
+                    'assigned_to_account' => strtolower($user->role ?? '') === 'account',
+                    'customer_name'       => $customer->customer_name,
+                    'company_name'        => $customer->company_name,
+                    'product_id'          => $customer->product_id,
+                    'product_type'        => $customer->product_type,
+                    'status'              => $customer->status,
+                    'mobile'              => $customer->mobile,
+                    'assign_date'         => Carbon::parse($customer->assign_date)->format('d/m/Y'),
                 ]
             ]);
         } catch (\Exception $e) {
@@ -561,6 +576,38 @@ class AuthApiController extends Controller
             return response()->json([
                 'status'  => true,
                 'message' => "Product '{$name}' deleted successfully",
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile / Frontend API to fetch users with role 'Account'
+     * Used by mobile app to display accounts for lead assignment
+     */
+    public function getAccountUsers(Request $request)
+    {
+        try {
+            $accounts = User::where('role', 'Account')
+                ->orderBy('name')
+                ->select('id', 'name', 'mobile', 'email', 'role')
+                ->get()
+                ->map(fn($u) => [
+                    'id'     => $u->id,
+                    'name'   => $u->name,
+                    'mobile' => $u->mobile,
+                    'email'  => $u->email,
+                    'role'   => $u->role,
+                ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Account users fetched successfully',
+                'data'    => $accounts,
             ]);
         } catch (\Exception $e) {
             return response()->json([

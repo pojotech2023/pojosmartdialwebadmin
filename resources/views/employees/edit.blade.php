@@ -16,6 +16,16 @@
 
 <div class="card-box">
 
+@if(isset($errors) && $errors->any())
+    <div style="background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:13.5px;font-weight:600;">
+        <ul style="margin:0;padding-left:18px;">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
 <form method="POST" action="{{ route('employees.update', $employee->id) }}">
     @csrf
     @method('PUT')
@@ -23,12 +33,32 @@
     {{-- Name --}}
     <label class="form-label">Full Name</label>
     <input type="text" name="name"
-           value="{{ $employee->name }}" required>
+           value="{{ old('name', $employee->name) }}" required>
+
+    {{-- Role --}}
+    <label class="form-label">Role</label>
+    <select name="role" class="cal-select" style="width:100%;margin-bottom:14px;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#fff;" required>
+        <option value="Telecaller" {{ old('role', $employee->role ?? 'Telecaller') === 'Telecaller' ? 'selected' : '' }}>
+            Telecaller (Mobile App Login)
+        </option>
+        <option value="Account" {{ old('role', $employee->role ?? '') === 'Account' ? 'selected' : '' }}>
+            Account (Web Portal Login)
+        </option>
+        @if($employee->role === 'Admin')
+            <option value="Admin" selected>Admin</option>
+        @endif
+    </select>
 
     {{-- Mobile --}}
     <label class="form-label">Mobile Number</label>
     <input type="text" name="mobile"
-           value="{{ $employee->mobile }}" required>
+           value="{{ old('mobile', $employee->mobile) }}" required>
+
+    {{-- Email (optional) --}}
+    <label class="form-label">Email ID (optional)</label>
+    <input type="email" name="email"
+           value="{{ old('email', $employee->email) }}"
+           placeholder="Enter email ID (optional for web login)">
 
     {{-- Password (optional) --}}
     <label class="form-label">New Password (optional)</label>

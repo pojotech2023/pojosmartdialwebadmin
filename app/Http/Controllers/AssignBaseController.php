@@ -20,8 +20,15 @@ class AssignBaseController extends Controller
     /* ================= ASSIGN BASE LIST ================= */
     public function index(Request $request)
     {
+        $currentUser = auth()->user();
+        $isAdmin = $currentUser ? $currentUser->isAdmin() : false;
+
         // Employees dropdown
-        $employees = User::orderBy('name')->pluck('name', 'id');
+        if ($isAdmin) {
+            $employees = User::orderBy('name')->pluck('name', 'id');
+        } else {
+            $employees = collect([$currentUser->id => $currentUser->name]);
+        }
 
         // Products dropdown
         $products = Product::where('is_active', true)->orderBy('name')->pluck('name', 'id');
@@ -30,7 +37,10 @@ class AssignBaseController extends Controller
         $query = AssignBase::with(['employee', 'product']);
 
         /* ========== EMPLOYEE FILTER ========== */
-        if ($request->filled('employee_id')) {
+        if (!$isAdmin) {
+            // Account user locked to leads assigned to their account
+            $query->where('emp_id', $currentUser->id);
+        } elseif ($request->filled('employee_id')) {
             $query->where('emp_id', $request->employee_id);
         }
 

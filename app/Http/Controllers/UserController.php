@@ -26,18 +26,22 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'mobile' => 'required|digits_between:8,15',
+            'name'     => 'required|string|max:255',
+            'mobile'   => 'required|digits_between:8,15|unique:users,mobile',
+            'role'     => 'required|in:Telecaller,Account',
+            'email'    => 'nullable|email|unique:users,email',
             'password' => 'required|min:6|confirmed',
         ]);
 
         User::create([
-            'name' => $request->name,
-            'mobile' => $request->mobile,
+            'name'     => trim($request->name),
+            'mobile'   => trim($request->mobile),
+            'role'     => $request->role,
+            'email'    => $request->filled('email') ? trim($request->email) : null,
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect()->route('employees.index');
+        return redirect()->route('employees.index')->with('success', "Employee created successfully with role '{$request->role}'");
     }
 
 
@@ -51,15 +55,23 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'name'   => 'required|string',
-            'mobile' => 'required|numeric|unique:users,mobile,' . $id,
+            'name'     => 'required|string|max:255',
+            'mobile'   => 'required|numeric|unique:users,mobile,' . $id,
+            'role'     => 'required|in:Telecaller,Account,Admin',
+            'email'    => 'nullable|email|unique:users,email,' . $id,
             'password' => 'nullable|confirmed|min:6',
         ]);
 
         $user = User::findOrFail($id);
 
-        $user->name   = $request->name;
-        $user->mobile = $request->mobile;
+        $user->name   = trim($request->name);
+        $user->mobile = trim($request->mobile);
+        if ($request->filled('role')) {
+            $user->role = $request->role;
+        }
+        if ($request->has('email')) {
+            $user->email = $request->filled('email') ? trim($request->email) : null;
+        }
 
         // Update password only if filled
         if ($request->filled('password')) {

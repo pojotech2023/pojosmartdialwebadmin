@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'mobile',
         'password',
+        'role',
         'application_id',
     ];
 
@@ -55,8 +56,19 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return strtolower($this->name ?? '') === 'admin'
+        return strtolower($this->role ?? '') === 'admin'
+            || strtolower($this->name ?? '') === 'admin'
             || strtolower($this->email ?? '') === 'admin@gmail.com'
             || $this->id === 10;
+    }
+
+    public function isAccount(): bool
+    {
+        return strtolower($this->role ?? '') === 'account';
+    }
+
+    public function isTelecaller(): bool
+    {
+        return strtolower($this->role ?? '') === 'telecaller' || empty($this->role);
     }
 }

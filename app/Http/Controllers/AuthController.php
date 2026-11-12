@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Exports\AssignBaseExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
@@ -24,20 +25,38 @@ class AuthController extends Controller
     // Handle login
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email'    => 'required|email',
+        $request->validate([
+            'email'    => 'required|string',
             'password' => 'required|string',
         ]);
 
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
+        $loginInput = trim($request->email);
+        $password = $request->password;
+
+        // Check whether loginInput is email or mobile number
+        $fieldType = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'mobile';
+
+        $user = User::where($fieldType, $loginInput)->first();
+
+        if ($user && Hash::check($password, $user->password)) {
+            // Telecaller accounts are restricted to mobile app login only
+            if ($user->isTelecaller() && !$user->isAdmin()) {
+                return back()->withInput()->withErrors([
+                    'email' => 'Telecaller accounts are restricted to mobile app login only. Web login is reserved for Account and Admin roles.',
+                ]);
+            }
+
+            Auth::login($user);
+            if ($request->hasSession()) {
+                $request->session()->regenerate();
+            }
 
             // Redirect to dashboard after login
             return redirect()->route('dashboard');
         }
 
-        return back()->withErrors([
-            'email' => 'Invalid email or password.',
+        return back()->withInput()->withErrors([
+            'email' => 'Invalid email/mobile number or password.',
         ]);
     }
 
@@ -54,60 +73,79 @@ class AuthController extends Controller
 
     // ---------- DASHBOARD ----------
     public function dashboard(Request $request)
-{
-    // Employee dropdown
-    $employees = User::orderBy('name')->pluck('name', 'id');
+    {
+        $currentUser = Auth::user();
+        $isAdmin = $currentUser ? $currentUser->isAdmin() : false;
+        $isAccount = $currentUser ? $currentUser->isAccount() : false;
 
-    // Product dropdown
-    $products = Product::where('is_active', true)->orderBy('name')->pluck('name', 'id');
+        // Employee dropdown
+        if ($isAdmin) {
+            $employees = User::orderBy('name')->pluck('name', 'id');
+        } else {
+            // Account user locked to their own account
+            $employees = collect([$currentUser->id => $currentUser->name]);
+        }
 
-    // ================= CARD COUNTS (ALL EMPLOYEES) =================
-    $cardData = User::leftJoin('assign_bases', 'users.id', '=', 'assign_bases.emp_id')
-        ->select(
-            'users.id',
-            'users.name',
-            \DB::raw('COUNT(assign_bases.id) as total')
-        )
-        ->groupBy('users.id', 'users.name')
-        ->orderBy('users.name')
-        ->get();
+        // Product dropdown
+        $products = Product::where('is_active', true)->orderBy('name')->pluck('name', 'id');
 
-    // ================= TABLE DATA =================
-    $query = AssignBase::with(['employee', 'product']);
+        // ================= CARD COUNTS =================
+        $cardQuery = User::leftJoin('assign_bases', 'users.id', '=', 'assign_bases.emp_id')
+            ->select(
+                'users.id',
+                'users.name',
+                \DB::raw('COUNT(assign_bases.id) as total')
+            )
+            ->groupBy('users.id', 'users.name')
+            ->orderBy('users.name');
 
-    if ($request->filled('employee_id')) {
-        $query->where('emp_id', $request->employee_id);
+        if (!$isAdmin) {
+            $cardQuery->where('users.id', $currentUser->id);
+        }
+
+        $cardData = $cardQuery->get();
+
+        // ================= TABLE DATA =================
+        $query = AssignBase::with(['employee', 'product']);
+
+        if (!$isAdmin) {
+            // Account users see records assigned to their account
+            $query->where('emp_id', $currentUser->id);
+        } elseif ($request->filled('employee_id')) {
+            $query->where('emp_id', $request->employee_id);
+        }
+
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('assign_date', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('assign_date', '<=', $request->to_date);
+        }
+
+        // ✅ PAGINATION (IMPORTANT)
+        $paginatedRows = $query
+            ->orderBy('assign_date', 'desc')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('dashboard', compact(
+            'employees',
+            'products',
+            'paginatedRows',
+            'cardData',
+            'isAdmin',
+            'isAccount'
+        ));
     }
-
-    if ($request->filled('product_id')) {
-        $query->where('product_id', $request->product_id);
-    }
-
-    if ($request->filled('status')) {
-        $query->where('status', $request->status);
-    }
-
-    if ($request->filled('from_date')) {
-        $query->whereDate('assign_date', '>=', $request->from_date);
-    }
-
-    if ($request->filled('to_date')) {
-        $query->whereDate('assign_date', '<=', $request->to_date);
-    }
-
-    // ✅ PAGINATION (IMPORTANT)
-    $paginatedRows = $query
-        ->orderBy('assign_date', 'desc')
-        ->paginate(20)
-        ->withQueryString();
-
-    return view('dashboard', compact(
-        'employees',
-        'products',
-        'paginatedRows',
-        'cardData'
-    ));
-}
 
     // ---------- NOTIFICATIONS DATA (JSON) ----------
     public function notificationsData(Request $request)
