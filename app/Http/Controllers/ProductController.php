@@ -8,15 +8,11 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     /**
-     * Display a listing of products.
+     * Redirect to settings product tab.
      */
     public function index()
     {
-        $products = Product::withCount('assignBases')
-            ->orderBy('id', 'asc')
-            ->get();
-
-        return view('products.index', compact('products'));
+        return redirect()->route('settings.index', ['tab' => 'products']);
     }
 
     /**
@@ -27,15 +23,16 @@ class ProductController extends Controller
         $request->validate([
             'name'        => 'required|string|max:255|unique:products,name',
             'description' => 'nullable|string|max:500',
+            'is_active'   => 'nullable|boolean',
         ]);
 
         Product::create([
             'name'        => trim($request->name),
             'description' => trim($request->description),
-            'is_active'   => true,
+            'is_active'   => $request->has('is_active') ? (bool) $request->is_active : true,
         ]);
 
-        return redirect()->route('products.index')->with('success', 'Product added successfully! It will now appear in the mobile dropdown and Assign Base.');
+        return redirect()->route('settings.index', ['tab' => 'products'])->with('success', 'Product added successfully! It will now appear in the mobile dropdown and Assign Base.');
     }
 
     /**
@@ -55,7 +52,7 @@ class ProductController extends Controller
             'is_active'   => $request->has('is_active') ? (bool) $request->is_active : true,
         ]);
 
-        return redirect()->route('products.index')->with('success', 'Product updated successfully!');
+        return redirect()->route('settings.index', ['tab' => 'products'])->with('success', 'Product updated successfully!');
     }
 
     /**
@@ -66,6 +63,6 @@ class ProductController extends Controller
         $name = $product->name;
         $product->delete();
 
-        return redirect()->route('products.index')->with('success', "Product '{$name}' deleted successfully!");
+        return redirect()->route('settings.index', ['tab' => 'products'])->with('success', "Product '{$name}' deleted successfully!");
     }
 }

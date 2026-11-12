@@ -29,5 +29,22 @@ Route::get('/get-customer-notes/{assignBaseId}', [CustomerController::class, 'ge
 Route::match(['get', 'post'], '/calendar-events', [AuthApiController::class, 'calendarEvents']);
 Route::post('/mark-notification-seen', [AuthApiController::class, 'markNotificationSeen']);
 Route::post('/mark-reminder-seen', [AuthApiController::class, 'markNotificationSeen']);
+// Products API (for Mobile App & Frontend)
 Route::match(['get', 'post'], '/products', [AuthApiController::class, 'getProducts']);
 Route::match(['get', 'post'], '/product-types', [AuthApiController::class, 'getProducts']);
+Route::post('/products/create', [AuthApiController::class, 'createProduct']);
+Route::post('/products/store', [AuthApiController::class, 'createProduct']);
+Route::match(['post', 'put'], '/products/update', [AuthApiController::class, 'updateProduct']);
+Route::match(['post', 'put'], '/products/{id}/update', [AuthApiController::class, 'updateProduct']);
+Route::match(['post', 'delete'], '/products/delete', [AuthApiController::class, 'deleteProduct']);
+Route::match(['post', 'delete'], '/products/{id}/delete', [AuthApiController::class, 'deleteProduct']);
+
+// Telecaller Statuses API (for Mobile App & Frontend)
+Route::match(['get', 'post'], '/telecaller-statuses', [AuthApiController::class, 'getTelecallerStatuses']);
+Route::match(['get', 'post'], '/statuses', [AuthApiController::class, 'getTelecallerStatuses']);
+Route::post('/telecaller-statuses/create', [AuthApiController::class, 'createTelecallerStatus']);
+Route::post('/telecaller-statuses/store', [AuthApiController::class, 'createTelecallerStatus']);
+Route::match(['post', 'put'], '/telecaller-statuses/update', [AuthApiController::class, 'updateTelecallerStatus']);
+Route::match(['post', 'put'], '/telecaller-statuses/{id}/update', [AuthApiController::class, 'updateTelecallerStatus']);
+Route::match(['post', 'delete'], '/telecaller-statuses/delete', [AuthApiController::class, 'deleteTelecallerStatus']);
+Route::match(['post', 'delete'], '/telecaller-statuses/{id}/delete', [AuthApiController::class, 'deleteTelecallerStatus']);

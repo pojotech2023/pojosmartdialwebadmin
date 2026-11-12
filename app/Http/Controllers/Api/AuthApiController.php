@@ -440,20 +440,293 @@ class AuthApiController extends Controller
     }
 
     /**
-     * Mobile API to fetch active products for dropdown list
+     * Mobile / Frontend API to fetch active products for dropdown list
      */
     public function getProducts(Request $request)
     {
         try {
-            $products = \App\Models\Product::where('is_active', true)
-                ->orderBy('name')
-                ->select('id', 'name', 'description')
+            $query = \App\Models\Product::query();
+            if (!$request->boolean('all')) {
+                $query->where('is_active', true);
+            }
+
+            $products = $query->orderBy('name')
+                ->select('id', 'name', 'description', 'is_active')
                 ->get();
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Products fetched successfully',
                 'data'    => $products,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile / Frontend API to create product
+     */
+    public function createProduct(Request $request)
+    {
+        try {
+            $request->validate([
+                'name'        => 'required|string|max:255|unique:products,name',
+                'description' => 'nullable|string|max:500',
+                'is_active'   => 'nullable|boolean',
+            ]);
+
+            $product = \App\Models\Product::create([
+                'name'        => trim($request->name),
+                'description' => trim($request->description),
+                'is_active'   => $request->has('is_active') ? (bool) $request->is_active : true,
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Product created successfully',
+                'data'    => $product,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile / Frontend API to update product
+     */
+    public function updateProduct(Request $request, $id = null)
+    {
+        try {
+            $productId = $id ?? $request->input('id');
+            $product = \App\Models\Product::find($productId);
+
+            if (!$product) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Product not found',
+                ], 404);
+            }
+
+            $request->validate([
+                'name'        => 'required|string|max:255|unique:products,name,' . $product->id,
+                'description' => 'nullable|string|max:500',
+                'is_active'   => 'nullable|boolean',
+            ]);
+
+            $product->update([
+                'name'        => trim($request->name),
+                'description' => trim($request->description),
+                'is_active'   => $request->has('is_active') ? (bool) $request->is_active : true,
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Product updated successfully',
+                'data'    => $product,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile / Frontend API to delete product
+     */
+    public function deleteProduct(Request $request, $id = null)
+    {
+        try {
+            $productId = $id ?? $request->input('id');
+            $product = \App\Models\Product::find($productId);
+
+            if (!$product) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Product not found',
+                ], 404);
+            }
+
+            $name = $product->name;
+            $product->delete();
+
+            return response()->json([
+                'status'  => true,
+                'message' => "Product '{$name}' deleted successfully",
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile / Frontend API to fetch telecaller statuses for remarks and appointments
+     */
+    public function getTelecallerStatuses(Request $request)
+    {
+        try {
+            $query = \App\Models\TelecallerStatus::query();
+
+            // Default to active only unless all=1 or all=true
+            if (!$request->boolean('all')) {
+                $query->where('is_active', true);
+            }
+
+            $statuses = $query->orderBy('sort_order', 'asc')
+                ->orderBy('id', 'asc')
+                ->get()
+                ->map(fn($s) => [
+                    'id'                   => $s->id,
+                    'name'                 => $s->name,
+                    'slug'                 => $s->slug,
+                    'color'                => $s->color,
+                    'description'          => $s->description,
+                    'requires_appointment' => (bool) $s->requires_appointment,
+                    'requires_location'    => (bool) $s->requires_location,
+                    'is_active'            => (bool) $s->is_active,
+                    'sort_order'           => (int) $s->sort_order,
+                ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Telecaller statuses fetched successfully',
+                'data'    => $statuses,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile / Frontend API to create telecaller status
+     */
+    public function createTelecallerStatus(Request $request)
+    {
+        try {
+            $request->validate([
+                'name'                 => 'required|string|max:255|unique:telecaller_statuses,name',
+                'color'                => 'nullable|string|max:30',
+                'description'          => 'nullable|string|max:500',
+                'requires_appointment' => 'nullable|boolean',
+                'requires_location'    => 'nullable|boolean',
+                'is_active'            => 'nullable|boolean',
+                'sort_order'           => 'nullable|integer',
+            ]);
+
+            $name = trim($request->name);
+
+            $status = \App\Models\TelecallerStatus::create([
+                'name'                 => $name,
+                'slug'                 => \Illuminate\Support\Str::slug($name),
+                'color'                => $request->filled('color') ? trim($request->color) : '#6366f1',
+                'description'          => trim($request->description),
+                'requires_appointment' => $request->boolean('requires_appointment'),
+                'requires_location'    => $request->boolean('requires_location'),
+                'is_active'            => $request->has('is_active') ? (bool) $request->is_active : true,
+                'sort_order'           => (int) $request->input('sort_order', 0),
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Telecaller status created successfully',
+                'data'    => $status,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile / Frontend API to update telecaller status
+     */
+    public function updateTelecallerStatus(Request $request, $id = null)
+    {
+        try {
+            $statusId = $id ?? $request->input('id');
+            $status = \App\Models\TelecallerStatus::find($statusId);
+
+            if (!$status) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Telecaller status not found',
+                ], 404);
+            }
+
+            $request->validate([
+                'name'                 => 'required|string|max:255|unique:telecaller_statuses,name,' . $status->id,
+                'color'                => 'nullable|string|max:30',
+                'description'          => 'nullable|string|max:500',
+                'requires_appointment' => 'nullable|boolean',
+                'requires_location'    => 'nullable|boolean',
+                'is_active'            => 'nullable|boolean',
+                'sort_order'           => 'nullable|integer',
+            ]);
+
+            $name = trim($request->name);
+
+            $status->update([
+                'name'                 => $name,
+                'slug'                 => \Illuminate\Support\Str::slug($name),
+                'color'                => $request->filled('color') ? trim($request->color) : ($status->color ?: '#6366f1'),
+                'description'          => trim($request->description),
+                'requires_appointment' => $request->boolean('requires_appointment'),
+                'requires_location'    => $request->boolean('requires_location'),
+                'is_active'            => $request->has('is_active') ? (bool) $request->is_active : true,
+                'sort_order'           => (int) $request->input('sort_order', $status->sort_order),
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Telecaller status updated successfully',
+                'data'    => $status,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile / Frontend API to delete telecaller status
+     */
+    public function deleteTelecallerStatus(Request $request, $id = null)
+    {
+        try {
+            $statusId = $id ?? $request->input('id');
+            $status = \App\Models\TelecallerStatus::find($statusId);
+
+            if (!$status) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Telecaller status not found',
+                ], 404);
+            }
+
+            $name = $status->name;
+            $status->delete();
+
+            return response()->json([
+                'status'  => true,
+                'message' => "Telecaller status '{$name}' deleted successfully",
             ]);
         } catch (\Exception $e) {
             return response()->json([

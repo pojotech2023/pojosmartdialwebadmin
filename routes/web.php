@@ -7,6 +7,7 @@ use App\Http\Controllers\AssignBaseController;
 use App\Http\Controllers\WhatsappNotificationController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Api\AuthApiController;
 
 /*
@@ -77,6 +78,16 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/calendar/events', [CalendarController::class, 'events'])
         ->name('calendar.events');
+
+    // Settings (Product Types & Telecaller Statuses)
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/products', [SettingsController::class, 'storeProduct'])->name('settings.products.store');
+    Route::put('/settings/products/{product}', [SettingsController::class, 'updateProduct'])->name('settings.products.update');
+    Route::delete('/settings/products/{product}', [SettingsController::class, 'destroyProduct'])->name('settings.products.destroy');
+
+    Route::post('/settings/statuses', [SettingsController::class, 'storeStatus'])->name('settings.statuses.store');
+    Route::put('/settings/statuses/{telecallerStatus}', [SettingsController::class, 'updateStatus'])->name('settings.statuses.update');
+    Route::delete('/settings/statuses/{telecallerStatus}', [SettingsController::class, 'destroyStatus'])->name('settings.statuses.destroy');
 
     Route::resource('/products', ProductController::class)->except(['create', 'show', 'edit']);
 
