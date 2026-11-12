@@ -2035,16 +2035,33 @@ class AuthApiController extends Controller
                 $assignBase->company_name = $cusCompanyName;
             }
 
-            // Mobile submit sets status to NEW (or requested status)
-            $assignBase->status = strtoupper(trim((string) $request->input('status', 'NEW')));
+            // Determine account status:
+            // If already set to a non-NEW status by Accounts team (e.g. IN PROGRESS, QUOTATION SHARED, CLIENT REPLIED), PRESERVE IT!
+            // Otherwise, default to NEW (or requested status).
+            $existingStatus = $assignBase->account_status ?: ($leadDetail->account_status ?: $assignBase->status);
+            $preserveList = ['IN PROGRESS', 'QUOTATION SHARED', 'CLIENT REPLIED'];
+            if (!empty($existingStatus) && in_array(strtoupper(trim($existingStatus)), $preserveList)) {
+                $finalStatus = strtoupper(trim($existingStatus));
+            } else {
+                $requestedStatus = strtoupper(trim((string) $request->input('status', '')));
+                $finalStatus = !empty($requestedStatus) ? $requestedStatus : 'NEW';
+            }
+
+            $assignBase->status = $finalStatus;
+            $assignBase->account_status = $finalStatus;
             $assignBase->save();
+
+            // Also keep leadDetail in sync
+            $leadDetail->account_status = $finalStatus;
+            $leadDetail->save();
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Lead details saved successfully',
                 'data'    => [
                     'assign_base_id'   => $assignBase->id,
-                    'status'           => $assignBase->status,
+                    'status'           => (string) $assignBase->status,
+                    'account_status'   => (string) $assignBase->account_status,
                     'assigned_to'      => $leadDetail->assigned_to ? (int)$leadDetail->assigned_to : null,
                     'project_type'     => (string) $leadDetail->project_type,
                     'cus_company_name' => (string) $leadDetail->cus_company_name,
