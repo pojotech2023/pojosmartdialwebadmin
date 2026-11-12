@@ -672,7 +672,7 @@ class AuthApiController extends Controller
     public function getAccountUsers(Request $request)
     {
         try {
-            $accounts = User::where('role', 'Account')
+            $accounts = User::whereRaw("LOWER(TRIM(role)) = 'account'")
                 ->orderBy('name')
                 ->select('id', 'name', 'mobile', 'email', 'role')
                 ->get()
@@ -681,7 +681,7 @@ class AuthApiController extends Controller
                     'name'   => $u->name,
                     'mobile' => $u->mobile,
                     'email'  => $u->email,
-                    'role'   => $u->role,
+                    'role'   => $u->role ?? 'Account',
                 ]);
 
             return response()->json([
@@ -1837,19 +1837,9 @@ class AuthApiController extends Controller
     public function getEmployeesList(Request $request)
     {
         try {
-            $query = User::query();
-
-            // Mobile app uses this API for "Assigned To" dropdown -> ONLY show Account role users!
-            if ($request->filled('role')) {
-                if (strtolower($request->role) !== 'all') {
-                    $query->whereRaw('LOWER(role) = ?', [strtolower($request->role)]);
-                }
-            } elseif ($request->boolean('all')) {
-                // Return all users
-            } else {
-                // By default, for mobile "Assigned To" dropdown, return Account role ONLY
-                $query->whereRaw('LOWER(role) = ?', ['account']);
-            }
+            // Mobile app uses this API for "Assigned To" dropdown -> STRICTLY ONLY show Account role users!
+            // Exclude Admin, Telecaller, etc. completely so mobile Assigned To only lists Account staff.
+            $query = User::query()->whereRaw("LOWER(TRIM(role)) = 'account'");
 
             $employees = $query->orderBy('name', 'asc')
                 ->get()
