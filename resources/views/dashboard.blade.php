@@ -61,11 +61,11 @@
 {{-- ============ FULL-SCREEN MOBILE LEAD DETAILS PANEL ============ --}}
 <div id="leadDetailsPanel" class="notif-panel">
 
-    <div class="notif-panel-header" style="background:linear-gradient(135deg,#0284c7,#2563eb 60%,#4f46e5);box-shadow:0 8px 24px rgba(37,99,235,0.25);">
+    <div class="notif-panel-header" style="background:linear-gradient(135deg,#f87171,#ef4444 60%,#dc2626);box-shadow:0 8px 24px rgba(239,68,68,0.25);">
         <div class="notif-panel-header-left">
             <div class="notif-panel-icon" style="background:rgba(255,255,255,0.2);"><i class="fas fa-file-invoice"></i></div>
             <div>
-                <div class="notif-panel-title">Lead & Project Details</div>
+                <div id="leadPanelTitle" class="notif-panel-title">Lead & Project Details</div>
                 <div id="leadPanelSubtitle" class="notif-panel-subtitle">Submitted via Mobile App</div>
             </div>
         </div>
@@ -801,8 +801,8 @@ function loadLeadDetails(assignBaseId) {
 function renderLeadDetails(d) {
     const title = document.getElementById('leadPanelTitle');
     const sub = document.getElementById('leadPanelSubtitle');
-    title.innerHTML = escHtml(d.customer_name || 'Customer Details');
-    sub.innerHTML = `<i class="fas fa-phone-alt" style="font-size:11px;margin-right:4px;"></i> ${escHtml(d.mobile || '—')} &bull; Lead #${d.id}`;
+    if (title) title.innerHTML = escHtml(d.customer_name || 'Customer Details');
+    if (sub) sub.innerHTML = `<i class="fas fa-phone-alt" style="font-size:11px;margin-right:4px;"></i> ${escHtml(d.mobile || '—')} &bull; Lead #${d.id}`;
 
     const p = d.project_details || {};
     const appt = d.appointment_details || {};
