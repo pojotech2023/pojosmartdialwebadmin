@@ -815,6 +815,8 @@ function confirmExport() {
 @endif
 
 <script>
+const IS_ADMIN = {{ $isAdmin ? 'true' : 'false' }};
+
 // ---- Project Details Panel (Eye Icon) ----
 function openLeadDetailsPanel(assignBaseId) {
     document.getElementById('leadDetailsPanel').style.display = 'block';
@@ -883,19 +885,25 @@ function renderLeadDetails(d) {
             </div>
 
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <div style="display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 10px 4px 12px; border-radius: 999px; border: 1px solid #e2e8f0;">
-                    <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Status:</span>
-                    <select class="account-status-select status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}"
-                            data-lead-id="${d.id}"
-                            data-current="${escHtml(d.status || 'NEW')}"
-                            onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
-                            style="padding: 6px 14px; font-size: 12px;">
-                        <option value="NEW" ${String(d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
-                        <option value="IN PROGRESS" ${String(d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
-                        <option value="QUOTATION SHARED" ${String(d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
-                        <option value="CLIENT REPLIED" ${String(d.status).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
-                    </select>
-                </div>
+                ${IS_ADMIN ? `
+                    <span class="status-badge status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 7px 16px; font-size: 13px;">
+                        ${escHtml(d.status || 'NEW')}
+                    </span>
+                ` : `
+                    <div style="display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 10px 4px 12px; border-radius: 999px; border: 1px solid #e2e8f0;">
+                        <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Status:</span>
+                        <select class="account-status-select status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}"
+                                data-lead-id="${d.id}"
+                                data-current="${escHtml(d.status || 'NEW')}"
+                                onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
+                                style="padding: 6px 14px; font-size: 12px;">
+                            <option value="NEW" ${String(d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
+                            <option value="IN PROGRESS" ${String(d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
+                            <option value="QUOTATION SHARED" ${String(d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
+                            <option value="CLIENT REPLIED" ${String(d.status).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
+                        </select>
+                    </div>
+                `}
                 <a href="tel:${escHtml(d.mobile)}" style="background: #f1f5f9; color: #0f172a; padding: 10px 18px; border-radius: 12px; text-decoration: none; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
                     <i class="fas fa-phone-alt" style="color: #059669;"></i> ${escHtml(d.mobile)}
                 </a>
@@ -1046,7 +1054,8 @@ function renderLeadDetails(d) {
                         </div>
                     </div>
 
-                    {{-- Account Status & Remarks Update Box --}}
+                    ${!IS_ADMIN ? `
+                    {{-- Account Status & Remarks Update Box (For Account Login Only) --}}
                     <div style="background: #f8fafc; border-radius: 16px; padding: 16px; margin-top: 14px; border: 1.5px solid #e2e8f0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <span style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase;">
@@ -1080,6 +1089,13 @@ function renderLeadDetails(d) {
                             </div>
                         ` : ''}
                     </div>
+                    ` : `
+                    {{-- For Admin Login: Read-only Status & Remarks Details --}}
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding: 12px 14px; background: #f8fafc; border-radius: 14px; border: 1px solid #f1f5f9; flex-wrap: wrap; gap: 8px;">
+                        <span>Current Status: <strong class="status-badge status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 4px 12px; font-size: 12px;">${escHtml(d.status || 'NEW')}</strong></span>
+                        ${p.account_remarks ? `<span style="font-size: 12px; color: #475569; font-weight: 600;"><i class="fas fa-sticky-note" style="color: #6366f1; margin-right: 4px;"></i> Note: ${escHtml(p.account_remarks)}</span>` : ''}
+                    </div>
+                    `}
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 4px 2px; font-size: 12.5px; color: #64748b;">
                         <span>Assigned Date: <strong style="color:#0f172a;">${escHtml(d.assign_date)}</strong></span>
