@@ -47,6 +47,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/whatsapp-notifications-data', [AuthController::class, 'whatsappNotificationsData'])
         ->name('dashboard.whatsapp-notifications.data');
 
+    Route::get('/dashboard/lead-details-data/{assignBaseId}', [AuthController::class, 'leadDetailsData'])
+        ->name('dashboard.lead-details.data');
+
     Route::post('/dashboard/notifications/mark-seen', [AuthController::class, 'markNotificationSeen'])
         ->name('dashboard.notifications.mark-seen');
 

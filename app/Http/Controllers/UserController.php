@@ -98,25 +98,19 @@ class UserController extends Controller
    
     public function loanApplicationDetails($assignBaseId)
     {
-        // Get customer info
-        $assignBase = \App\Models\AssignBase::find($assignBaseId);
+        // Get customer & lead info
+        $assignBase = \App\Models\AssignBase::with(['employee', 'assignedUser', 'product', 'leadDetail'])->find($assignBaseId);
         
         if (!$assignBase) {
             abort(404, 'Customer not found');
         }
 
-        // Get loan application
+        $leadDetail = $assignBase->leadDetail;
         $loanApplication = \App\Models\LoanApplication::where('assign_base_id', $assignBaseId)->first();
 
-        if (!$loanApplication) {
-            return view('loan-application-details', [
-                'customer' => $assignBase,
-                'loanApplication' => null
-            ]);
-        }
-
         return view('loan-application-details', [
-            'customer' => $assignBase,
+            'customer'        => $assignBase,
+            'leadDetail'      => $leadDetail,
             'loanApplication' => $loanApplication
         ]);
     }
