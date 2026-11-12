@@ -124,7 +124,7 @@
     .notif-close-btn:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
 
     .notif-panel-content { padding: 30px 30px 30px 40px; max-width: 880px; margin: 0; }
-    #leadDetailsPanel .notif-panel-content { max-width: 100% !important; padding: 24px 32px !important; margin: 0 !important; }
+    #leadDetailsPanel .notif-panel-content { max-width: 1000px !important; padding: 24px 20px !important; margin: 0 auto !important; }
 
     /* Account Status Select Pills & Badges */
     .account-status-select {
@@ -862,41 +862,47 @@ function renderLeadDetails(d) {
     const appt = d.appointment_details || {};
     const notes = Array.isArray(d.notes) ? d.notes : [];
     const isGstYes = (p.gst === 'Y' || p.gst === 'YES');
+    const statusSlug = escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'));
 
     let html = `
-    <div style="width: 100%; max-width: 1350px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; padding: 10px 6px 40px 6px;">
+    <div style="background: #ffffff; border-radius: 18px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden;">
 
-        {{-- Top Bar Quick Info Banner --}}
-        <div style="background: #ffffff; border-radius: 20px; padding: 22px 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #fee2e2, #fecaca); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800;">
+        {{-- Single Card Top Header: Customer Info & Quick Actions --}}
+        <div style="padding: 22px 26px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; background: #fafbfc; border-bottom: 1px solid #f1f5f9;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 50px; height: 50px; border-radius: 14px; background: linear-gradient(135deg, #fee2e2, #fecaca); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex-shrink: 0;">
                     ${escHtml((d.customer_name || 'C').charAt(0).toUpperCase())}
                 </div>
                 <div>
-                    <div style="font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1.2;">
-                        ${escHtml(d.customer_name || 'Customer')}
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <span style="font-size: 20px; font-weight: 800; color: #0f172a;">
+                            ${escHtml(d.customer_name || 'Customer')}
+                        </span>
+                        <span style="background: #eef2ff; color: #4338ca; padding: 3px 10px; border-radius: 8px; font-weight: 700; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-tag" style="font-size: 10px;"></i> ${escHtml(p.project_type || d.product_type || 'Website')}
+                        </span>
                     </div>
-                    <div style="font-size: 14px; color: #64748b; font-weight: 600; margin-top: 3px;">
-                        <i class="far fa-building" style="color:#94a3b8; margin-right: 4px;"></i> ${escHtml(d.company_name || '—')}
-                        <span style="margin: 0 8px; color: #cbd5e1;">&bull;</span>
-                        <i class="fas fa-tag" style="color: #6366f1; margin-right: 4px;"></i> ${escHtml(p.project_type || d.product_type || 'Website')}
+                    <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 8px;">
+                        <span><i class="far fa-building" style="color:#94a3b8; margin-right: 4px;"></i> ${escHtml(p.cus_company_name || d.company_name || '—')}</span>
+                        <span style="color: #cbd5e1;">&bull;</span>
+                        <span><i class="far fa-calendar-alt" style="color:#94a3b8; margin-right: 4px;"></i> ${escHtml(d.assign_date || '—')}</span>
                     </div>
                 </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 ${IS_ADMIN ? `
-                    <span class="status-badge status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 7px 16px; font-size: 13px;">
+                    <span class="status-badge status-${statusSlug}" style="padding: 7px 16px; font-size: 12.5px;">
                         ${escHtml(d.status || 'NEW')}
                     </span>
                 ` : `
-                    <div style="display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 10px 4px 12px; border-radius: 999px; border: 1px solid #e2e8f0;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: #fff; padding: 3px 8px 3px 12px; border-radius: 999px; border: 1.5px solid #e2e8f0;">
                         <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Status:</span>
-                        <select class="account-status-select status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}"
+                        <select class="account-status-select status-${statusSlug}"
                                 data-lead-id="${d.id}"
                                 data-current="${escHtml(d.status || 'NEW')}"
                                 onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
-                                style="padding: 6px 14px; font-size: 12px;">
+                                style="padding: 5px 12px; font-size: 12px;">
                             <option value="NEW" ${String(d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
                             <option value="IN PROGRESS" ${String(d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
                             <option value="QUOTATION SHARED" ${String(d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
@@ -904,282 +910,202 @@ function renderLeadDetails(d) {
                         </select>
                     </div>
                 `}
-                <a href="tel:${escHtml(d.mobile)}" style="background: #f1f5f9; color: #0f172a; padding: 10px 18px; border-radius: 12px; text-decoration: none; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+
+                <a href="tel:${escHtml(d.mobile)}" style="background: #f1f5f9; color: #0f172a; padding: 8px 16px; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
                     <i class="fas fa-phone-alt" style="color: #059669;"></i> ${escHtml(d.mobile)}
                 </a>
-                <a href="https://wa.me/${escHtml(d.mobile).replace(/[^\d]/g, '')}" target="_blank" style="background: linear-gradient(135deg,#25d366,#128c4a); color: #fff; padding: 10px 18px; border-radius: 12px; text-decoration: none; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(37,211,102,0.3);">
-                    <i class="fab fa-whatsapp" style="font-size: 16px;"></i> WhatsApp
+
+                <a href="https://wa.me/${escHtml(d.mobile).replace(/[^\d]/g, '')}" target="_blank" style="background: linear-gradient(135deg,#25d366,#128c4a); color: #fff; padding: 8px 16px; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,211,102,0.25);">
+                    <i class="fab fa-whatsapp" style="font-size: 15px;"></i> WhatsApp
                 </a>
             </div>
         </div>
 
-        {{-- Two-Column Full-Screen Responsive Grid --}}
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 24px; align-items: start;">
+        {{-- Single Card Body --}}
+        <div style="padding: 24px 26px;">
 
-            {{-- LEFT COLUMN: Mobile App Styled Project Details Card --}}
-            <div style="background: #ffffff; border-radius: 24px; padding: 30px 28px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">
-                
-                {{-- Card Header --}}
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 16px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 42px; height: 42px; border-radius: 12px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                            <i class="far fa-file-alt"></i>
-                        </div>
-                        <div>
-                            <div style="font-size: 20px; font-weight: 800; color: #1e293b;">Project Details</div>
-                            <div style="font-size: 12.5px; color: #64748b;">Submitted via Mobile App</div>
-                        </div>
+            {{-- 1. Unified Project & Assignment Key-Value Grid --}}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 22px;">
+
+                {{-- Origin Telecaller --}}
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+                        <i class="fas fa-headset" style="color: #6366f1; margin-right: 4px;"></i> Origin Telecaller
                     </div>
-                    <span style="background: #fef2f2; color: #dc2626; font-size: 11.5px; font-weight: 800; padding: 4px 12px; border-radius: 20px;">
-                        <i class="fas fa-mobile-alt" style="margin-right: 4px;"></i> Mobile Form
-                    </span>
+                    <div style="font-size: 14px; font-weight: 800; color: #0f172a;">
+                        ${escHtml(d.telecaller?.name || '—')}
+                    </div>
+                    ${d.telecaller?.mobile ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">${escHtml(d.telecaller.mobile)}</div>` : ''}
                 </div>
 
-                {{-- 1. Project Type --}}
-                <div style="position: relative; margin-bottom: 18px;">
-                    <label style="position: absolute; top: -9px; left: 16px; background: #fff; padding: 0 8px; font-size: 11.5px; font-weight: 700; color: #64748b;">Project Type</label>
-                    <div style="display: flex; align-items: center; gap: 14px; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; background: #fff;">
-                        <i class="fas fa-shapes" style="color: #ef4444; font-size: 16px; width: 20px; text-align: center;"></i>
-                        <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${escHtml(p.project_type || d.product_type || '—')}</span>
+                {{-- Assigned Account --}}
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+                        <i class="fas fa-user-shield" style="color: #059669; margin-right: 4px;"></i> Assigned Account
                     </div>
+                    <div style="font-size: 14px; font-weight: 800; color: #047857;">
+                        ${escHtml(d.assigned_to?.name || '—')}
+                    </div>
+                    ${d.assigned_to?.mobile ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">${escHtml(d.assigned_to.mobile)}</div>` : ''}
                 </div>
 
-                {{-- 2. Customer Name --}}
-                <div style="position: relative; margin-bottom: 18px;">
-                    <label style="position: absolute; top: -9px; left: 16px; background: #fff; padding: 0 8px; font-size: 11.5px; font-weight: 700; color: #64748b;">Customer Name</label>
-                    <div style="display: flex; align-items: center; gap: 14px; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; background: #fff;">
-                        <i class="far fa-user" style="color: #ef4444; font-size: 16px; width: 20px; text-align: center;"></i>
-                        <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${escHtml(d.customer_name || '—')}</span>
+                {{-- Project Type --}}
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+                        <i class="fas fa-shapes" style="color: #ef4444; margin-right: 4px;"></i> Project Type
+                    </div>
+                    <div style="font-size: 14px; font-weight: 700; color: #0f172a;">
+                        ${escHtml(p.project_type || d.product_type || '—')}
                     </div>
                 </div>
 
-                {{-- 3. Company Name --}}
-                <div style="position: relative; margin-bottom: 18px;">
-                    <label style="position: absolute; top: -9px; left: 16px; background: #fff; padding: 0 8px; font-size: 11.5px; font-weight: 700; color: #64748b;">Company Name</label>
-                    <div style="display: flex; align-items: center; gap: 14px; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; background: #fff;">
-                        <i class="far fa-building" style="color: #ef4444; font-size: 16px; width: 20px; text-align: center;"></i>
-                        <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${escHtml(p.cus_company_name || d.company_name || '—')}</span>
+                {{-- Company Name --}}
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+                        <i class="far fa-building" style="color: #0284c7; margin-right: 4px;"></i> Company Name
+                    </div>
+                    <div style="font-size: 14px; font-weight: 700; color: #0f172a;">
+                        ${escHtml(p.cus_company_name || d.company_name || '—')}
                     </div>
                 </div>
 
-                {{-- 4. Customer Mail --}}
-                <div style="position: relative; margin-bottom: 18px;">
-                    <label style="position: absolute; top: -9px; left: 16px; background: #fff; padding: 0 8px; font-size: 11.5px; font-weight: 700; color: #64748b;">Customer Mail</label>
-                    <div style="display: flex; align-items: center; gap: 14px; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; background: #fff;">
-                        <i class="far fa-envelope" style="color: #ef4444; font-size: 16px; width: 20px; text-align: center;"></i>
-                        <span style="font-size: 15px; font-weight: 600; color: ${p.cus_mail ? '#2563eb' : '#94a3b8'};">
-                            ${p.cus_mail ? `<a href="mailto:${escHtml(p.cus_mail)}" style="color:#2563eb;text-decoration:none;">${escHtml(p.cus_mail)}</a>` : 'Customer Mail (Not provided)'}
-                        </span>
+                {{-- Customer Email --}}
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+                        <i class="far fa-envelope" style="color: #d97706; margin-right: 4px;"></i> Customer Mail
+                    </div>
+                    <div style="font-size: 14px; font-weight: 600; color: ${p.cus_mail ? '#2563eb' : '#94a3b8'};">
+                        ${p.cus_mail ? `<a href="mailto:${escHtml(p.cus_mail)}" style="color:#2563eb;text-decoration:none;">${escHtml(p.cus_mail)}</a>` : '—'}
                     </div>
                 </div>
 
-                {{-- 5. Price --}}
-                <div style="position: relative; margin-bottom: 20px;">
-                    <label style="position: absolute; top: -9px; left: 16px; background: #fff; padding: 0 8px; font-size: 11.5px; font-weight: 700; color: #64748b;">Price</label>
-                    <div style="display: flex; align-items: center; gap: 14px; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; background: #fff;">
-                        <span style="color: #ef4444; font-size: 19px; font-weight: 800; width: 20px; text-align: center;">₹</span>
-                        <span style="font-size: 18px; font-weight: 800; color: ${p.price_raw ? '#15803d' : '#94a3b8'};">
-                            ${p.price && p.price !== '—' ? escHtml(p.price) : (p.price_raw ? '₹ ' + escHtml(p.price_raw) : 'Price (Not provided)')}
-                        </span>
+                {{-- Price / Budget --}}
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+                        <span style="font-weight: 800; color: #16a34a; margin-right: 4px;">₹</span> Price / Budget
+                    </div>
+                    <div style="font-size: 15px; font-weight: 800; color: ${p.price_raw || (p.price && p.price !== '—') ? '#15803d' : '#94a3b8'};">
+                        ${p.price && p.price !== '—' ? escHtml(p.price) : (p.price_raw ? '₹ ' + escHtml(p.price_raw) : '—')}
                     </div>
                 </div>
 
-                {{-- 6. GST Selection --}}
-                <div style="margin-bottom: 18px;">
-                    <label style="font-size: 13px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 10px;">GST</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                        {{-- Yes --}}
-                        <div style="border: 1.5px solid ${isGstYes ? '#fca5a5' : '#e2e8f0'}; background: ${isGstYes ? '#fef2f2' : '#fff'}; border-radius: 14px; padding: 13px 18px; display: flex; align-items: center; gap: 12px;">
-                            <span style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid ${isGstYes ? '#ef4444' : '#cbd5e1'}; display: flex; align-items: center; justify-content: center;">
-                                ${isGstYes ? '<span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></span>' : ''}
-                            </span>
-                            <span style="font-size: 14.5px; font-weight: 700; color: ${isGstYes ? '#b91c1c' : '#64748b'};">Yes</span>
-                        </div>
-
-                        {{-- No --}}
-                        <div style="border: 1.5px solid ${!isGstYes ? '#fca5a5' : '#e2e8f0'}; background: ${!isGstYes ? '#fef2f2' : '#fff'}; border-radius: 14px; padding: 13px 18px; display: flex; align-items: center; gap: 12px;">
-                            <span style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid ${!isGstYes ? '#ef4444' : '#cbd5e1'}; display: flex; align-items: center; justify-content: center;">
-                                ${!isGstYes ? '<span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></span>' : ''}
-                            </span>
-                            <span style="font-size: 14.5px; font-weight: 700; color: ${!isGstYes ? '#b91c1c' : '#64748b'};">No</span>
-                        </div>
+                {{-- GST & GST Number --}}
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+                        <i class="far fa-file-invoice" style="color: #8b5cf6; margin-right: 4px;"></i> GST
+                    </div>
+                    <div style="font-size: 14px; font-weight: 700; color: #0f172a;">
+                        ${isGstYes ? `<span style="color:#15803d;"><i class="fas fa-check-circle" style="font-size:12px;"></i> Yes</span> ${p.gst_no ? `<span style="font-size:12px;color:#64748b;font-family:monospace;margin-left:6px;">(${escHtml(p.gst_no)})</span>` : ''}` : '<span style="color:#64748b;">No</span>'}
                     </div>
                 </div>
 
-                {{-- 7. GST No --}}
-                <div style="position: relative; margin-bottom: 24px;">
-                    <label style="position: absolute; top: -9px; left: 16px; background: #fff; padding: 0 8px; font-size: 11.5px; font-weight: 700; color: #64748b;">GST No</label>
-                    <div style="display: flex; align-items: center; gap: 14px; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; background: #fff;">
-                        <i class="far fa-file-invoice" style="color: #ef4444; font-size: 16px; width: 20px; text-align: center;"></i>
-                        <span style="font-size: 15px; font-weight: 700; color: ${p.gst_no ? '#0f172a' : '#94a3b8'}; font-family: ${p.gst_no ? 'monospace' : 'inherit'};">
-                            ${p.gst_no ? escHtml(p.gst_no) : 'GST No (Not provided)'}
-                        </span>
+                {{-- Assigned Date --}}
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+                        <i class="far fa-calendar-alt" style="color: #64748b; margin-right: 4px;"></i> Assigned Date
                     </div>
-                </div>
-
-                {{-- Mobile App Data Badge --}}
-                <div style="background: linear-gradient(135deg, #f87171, #ef4444); color: #fff; border-radius: 16px; padding: 14px; text-align: center; font-size: 15px; font-weight: 800; box-shadow: 0 6px 20px rgba(239,68,68,0.25); display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <i class="fas fa-check-circle"></i> Mobile App Submitted Data
+                    <div style="font-size: 14px; font-weight: 700; color: #0f172a;">
+                        ${escHtml(d.assign_date || '—')}
+                    </div>
                 </div>
 
             </div>
 
-            {{-- RIGHT COLUMN: Assignment, Appointment & Remarks History --}}
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-
-                {{-- Card: Lead Assignment & Ownership --}}
-                <div style="background: #ffffff; border-radius: 24px; padding: 26px 26px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">
-                    <div style="font-size: 17px; font-weight: 800; color: #1e293b; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 12px;">
-                        <div style="width: 36px; height: 36px; border-radius: 10px; background: #ecfdf5; color: #047857; display: flex; align-items: center; justify-content: center; font-size: 16px;">
-                            <i class="fas fa-users-cog"></i>
-                        </div>
-                        Lead Assignment & Ownership
+            {{-- 2. Account Status & Note Section --}}
+            ${!IS_ADMIN ? `
+                <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 22px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase;">
+                            <i class="fas fa-tasks" style="color: #6366f1; margin-right: 4px;"></i> Account Status & Note
+                        </span>
+                        <strong id="modal-status-badge-${d.id}" class="status-badge status-${statusSlug}" style="padding: 3px 10px; font-size: 11px;">
+                            ${escHtml(p.account_status || d.status || 'NEW')}
+                        </strong>
                     </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                        <div style="background: #f8fafc; padding: 14px 16px; border-radius: 16px; border: 1px solid #f1f5f9;">
-                            <div style="color: #64748b; font-weight: 700; font-size: 11.5px; text-transform: uppercase;">Origin Telecaller</div>
-                            <div style="font-weight: 800; color: #1e293b; font-size: 16px; margin-top: 4px;">
-                                <i class="fas fa-headset" style="color: #4f46e5; margin-right: 4px;"></i> ${escHtml(d.telecaller?.name || '—')}
-                            </div>
-                            <div style="color: #64748b; font-size: 12.5px; margin-top: 2px;">${escHtml(d.telecaller?.mobile || '')}</div>
-                        </div>
-
-                        <div style="background: #f8fafc; padding: 14px 16px; border-radius: 16px; border: 1px solid #f1f5f9;">
-                            <div style="color: #64748b; font-weight: 700; font-size: 11.5px; text-transform: uppercase;">Assigned Account</div>
-                            <div style="font-weight: 800; color: #047857; font-size: 16px; margin-top: 4px;">
-                                <i class="fas fa-user-shield" style="color: #047857; margin-right: 4px;"></i> ${escHtml(d.assigned_to?.name || '—')}
-                            </div>
-                            <div style="color: #64748b; font-size: 12.5px; margin-top: 2px;">${escHtml(d.assigned_to?.mobile || '')}</div>
-                        </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <select id="modalStatusSelect-${d.id}" class="account-status-select status-${statusSlug}"
+                                data-lead-id="${d.id}"
+                                data-current="${escHtml(p.account_status || d.status || 'NEW')}"
+                                onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
+                                style="padding: 8px 14px; font-size: 12.5px;">
+                            <option value="NEW" ${String(p.account_status || d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
+                            <option value="IN PROGRESS" ${String(p.account_status || d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
+                            <option value="QUOTATION SHARED" ${String(p.account_status || d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
+                            <option value="CLIENT REPLIED" ${String(p.account_status || d.status).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
+                        </select>
+                        <input type="text" id="modalRemarks-${d.id}" value="${escHtml(p.account_remarks || '')}" placeholder="Add account note (e.g. quotation sent)..." style="flex: 1; min-width: 220px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 13px; outline: none; background: #fff;">
+                        <button onclick="saveAccountRemarks(${d.id})" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border:none; padding:8px 18px; border-radius:10px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;">
+                            Save Note
+                        </button>
                     </div>
-
-                    ${!IS_ADMIN ? `
-                    {{-- Account Status & Remarks Update Box (For Account Login Only) --}}
-                    <div style="background: #f8fafc; border-radius: 16px; padding: 16px; margin-top: 14px; border: 1.5px solid #e2e8f0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase;">
-                                <i class="fas fa-tasks" style="color: #6366f1; margin-right: 4px;"></i> Lead Account Status
-                            </span>
-                            <strong id="modal-status-badge-${d.id}" class="status-badge status-${escHtml((p.account_status || d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 3px 10px; font-size: 11px;">
-                                ${escHtml(p.account_status || d.status || 'NEW')}
-                            </strong>
-                        </div>
-                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
-                            <select id="modalStatusSelect-${d.id}" class="account-status-select status-${escHtml((p.account_status || d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}"
-                                    data-lead-id="${d.id}"
-                                    data-current="${escHtml(p.account_status || d.status || 'NEW')}"
-                                    onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
-                                    style="padding: 7px 14px; font-size: 12.5px; flex: 1;">
-                                <option value="NEW" ${String(p.account_status || d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
-                                <option value="IN PROGRESS" ${String(p.account_status || d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
-                                <option value="QUOTATION SHARED" ${String(p.account_status || d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
-                                <option value="CLIENT REPLIED" ${String(p.account_status || d.status).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
-                            </select>
-                        </div>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="text" id="modalRemarks-${d.id}" value="${escHtml(p.account_remarks || '')}" placeholder="Add account note (e.g. quotation sent)..." style="flex: 1; padding: 7px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 12px; outline: none;">
-                            <button onclick="saveAccountRemarks(${d.id})" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border:none; padding:7px 14px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap;">
-                                Save Note
-                            </button>
-                        </div>
-                        ${d.account_status_details?.updated_by && d.account_status_details.updated_by !== '—' ? `
-                            <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
-                                Updated by <strong>${escHtml(d.account_status_details.updated_by)}</strong> on ${escHtml(d.account_status_details.updated_at || '—')}
-                            </div>
-                        ` : ''}
-                    </div>
-                    ` : `
-                    {{-- For Admin Login: Read-only Status & Remarks Details --}}
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding: 12px 14px; background: #f8fafc; border-radius: 14px; border: 1px solid #f1f5f9; flex-wrap: wrap; gap: 8px;">
-                        <span>Current Status: <strong class="status-badge status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 4px 12px; font-size: 12px;">${escHtml(d.status || 'NEW')}</strong></span>
-                        ${p.account_remarks ? `<span style="font-size: 12px; color: #475569; font-weight: 600;"><i class="fas fa-sticky-note" style="color: #6366f1; margin-right: 4px;"></i> Note: ${escHtml(p.account_remarks)}</span>` : ''}
-                    </div>
-                    `}
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 4px 2px; font-size: 12.5px; color: #64748b;">
-                        <span>Assigned Date: <strong style="color:#0f172a;">${escHtml(d.assign_date)}</strong></span>
-                    </div>
-                </div>
-
-                {{-- Card: Latest Appointment & Meeting (if available) --}}
-                ${appt && (appt.appointment_date || appt.location || appt.alternate_number) ? `
-                <div style="background: #ffffff; border-radius: 24px; padding: 26px 26px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">
-                    <div style="font-size: 17px; font-weight: 800; color: #1e293b; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 12px;">
-                        <div style="width: 36px; height: 36px; border-radius: 10px; background: #ede9fe; color: #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 16px;">
-                            <i class="far fa-calendar-check"></i>
-                        </div>
-                        Appointment & Meeting Schedule
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
-                        <div>
-                            <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">Appointment Schedule</div>
-                            <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 3px;">
-                                <i class="far fa-calendar-alt" style="color: #7c3aed; margin-right: 4px;"></i> ${escHtml(appt.appointment_date || '—')} 
-                                ${appt.appointment_time ? `<span style="color:#64748b; font-weight:600; font-size:13px;">at ${escHtml(appt.appointment_time)}</span>` : ''}
-                            </div>
-                        </div>
-
-                        <div>
-                            <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">Alternate Number</div>
-                            <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 3px;">
-                                ${appt.alternate_number ? `<a href="tel:${escHtml(appt.alternate_number)}" style="color:#0f172a; text-decoration:none;"><i class="fas fa-phone-square" style="color:#059669; margin-right:4px;"></i> ${escHtml(appt.alternate_number)}</a>` : '<span style="color:#94a3b8;">—</span>'}
-                            </div>
-                        </div>
-                    </div>
-
-                    ${appt.location ? `
-                        <div style="background: #f8fafc; border-radius: 14px; padding: 14px 16px; border: 1px solid #f1f5f9;">
-                            <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Meeting Location / Address</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #0f172a; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                                <span><i class="fas fa-map-marker-alt" style="color: #ef4444; margin-right: 6px;"></i> ${escHtml(appt.location)}</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appt.location)}" target="_blank" style="background: #fee2e2; color: #b91c1c; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
-                                    <i class="fas fa-external-link-alt"></i> Open Google Maps
-                                </a>
-                            </div>
+                    ${d.account_status_details?.updated_by && d.account_status_details.updated_by !== '—' ? `
+                        <div style="font-size: 11.5px; color: #94a3b8; margin-top: 8px;">
+                            Updated by <strong>${escHtml(d.account_status_details.updated_by)}</strong> on ${escHtml(d.account_status_details.updated_at || '—')}
                         </div>
                     ` : ''}
                 </div>
+            ` : `
+                ${p.account_remarks ? `
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 16px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 13px; color: #475569; font-weight: 600;">
+                        <i class="fas fa-sticky-note" style="color: #6366f1; margin-right: 6px;"></i> Account Note: <strong>${escHtml(p.account_remarks)}</strong>
+                    </span>
+                    ${d.account_status_details?.updated_by && d.account_status_details.updated_by !== '—' ? `
+                        <span style="font-size: 11.5px; color: #94a3b8;">
+                            By ${escHtml(d.account_status_details.updated_by)} on ${escHtml(d.account_status_details.updated_at || '—')}
+                        </span>
+                    ` : ''}
+                </div>
                 ` : ''}
+            `}
 
-                {{-- Card: Mobile Remarks History --}}
-                <div style="background: #ffffff; border-radius: 24px; padding: 26px 26px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 36px; height: 36px; border-radius: 10px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 16px;">
-                                <i class="fas fa-history"></i>
-                            </div>
-                            <div style="font-size: 17px; font-weight: 800; color: #1e293b;">Mobile Remarks History</div>
-                        </div>
-                        <span style="background: #f1f5f9; color: #64748b; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 14px;">${notes.length} Remarks</span>
+            {{-- 3. Appointment / Meeting (if scheduled) --}}
+            ${appt && (appt.appointment_date || appt.location || appt.alternate_number) ? `
+                <div style="background: #faf5ff; border: 1px solid #f3e8ff; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px;">
+                    <div style="font-size: 11.5px; font-weight: 800; color: #7c3aed; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <i class="far fa-calendar-check"></i> Appointment Schedule
                     </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 18px; font-size: 13.5px; color: #0f172a; font-weight: 600;">
+                        ${appt.appointment_date ? `<span><i class="far fa-calendar-alt" style="color:#7c3aed; margin-right:4px;"></i> ${escHtml(appt.appointment_date)} ${appt.appointment_time ? 'at ' + escHtml(appt.appointment_time) : ''}</span>` : ''}
+                        ${appt.alternate_number ? `<span><i class="fas fa-phone-square" style="color:#059669; margin-right:4px;"></i> <a href="tel:${escHtml(appt.alternate_number)}" style="color:#0f172a;text-decoration:none;">${escHtml(appt.alternate_number)}</a></span>` : ''}
+                        ${appt.location ? `<span><i class="fas fa-map-marker-alt" style="color:#ef4444; margin-right:4px;"></i> ${escHtml(appt.location)} <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appt.location)}" target="_blank" style="color:#7c3aed;font-size:12px;margin-left:4px;text-decoration:underline;">(View Map)</a></span>` : ''}
+                    </div>
+                </div>
+            ` : ''}
 
-                    ${notes.length === 0 ? `
-                        <div style="text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 13.5px;">
-                            <i class="far fa-comment-dots" style="font-size: 32px; color: #cbd5e1; display: block; margin-bottom: 8px;"></i>
-                            No remarks submitted from mobile app yet.
-                        </div>
-                    ` : `
-                        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow-y: auto; padding-right: 4px;">
-                            ${notes.map(n => `
-                                <div style="background: #f8fafc; border-radius: 14px; padding: 14px 16px; border: 1px solid #f1f5f9;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <span style="font-weight: 800; font-size: 13.5px; color: #1e293b;">${escHtml(n.employee_name)}</span>
-                                            ${n.status ? `<span style="background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 700;">${escHtml(n.status)}</span>` : ''}
-                                        </div>
-                                        <span style="font-size: 11.5px; color: #94a3b8; font-weight: 600;">${escHtml(n.created_at || (n.notification_date + ' ' + (n.notification_time || '')))}</span>
-                                    </div>
-                                    <div style="font-size: 13.5px; color: #334155; line-height: 1.5;">${escHtml(n.remarks || 'No remarks text')}</div>
-                                    ${n.location ? `<div style="font-size: 12px; color: #64748b; margin-top: 6px;"><i class="fas fa-map-marker-alt" style="color: #ef4444; font-size: 11px;"></i> Location: ${escHtml(n.location)}</div>` : ''}
-                                    ${n.appointment_date ? `<div style="font-size: 12px; color: #7c3aed; margin-top: 4px; font-weight: 600;"><i class="far fa-calendar-alt" style="font-size: 11px;"></i> Appointment: ${escHtml(n.appointment_date)} ${escHtml(n.appointment_time || '')}</div>` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    `}
+            {{-- 4. Telecaller Remarks History --}}
+            <div style="border-top: 1px solid #f1f5f9; padding-top: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-size: 14px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-history" style="color: #6366f1;"></i> Telecaller Remarks History
+                    </div>
+                    <span style="background: #f1f5f9; color: #64748b; font-size: 11.5px; font-weight: 700; padding: 2px 10px; border-radius: 12px;">
+                        ${notes.length} ${notes.length === 1 ? 'Remark' : 'Remarks'}
+                    </span>
                 </div>
 
+                ${notes.length === 0 ? `
+                    <div style="text-align: center; padding: 18px; color: #94a3b8; font-size: 13px; background: #f8fafc; border-radius: 10px;">
+                        No remarks submitted from mobile app yet.
+                    </div>
+                ` : `
+                    <div style="display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto;">
+                        ${notes.map(n => `
+                            <div style="background: #f8fafc; border-radius: 10px; padding: 12px 14px; border: 1px solid #f1f5f9;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 12px; flex-wrap: wrap; gap: 6px;">
+                                    <span style="font-weight: 800; color: #1e293b;">
+                                        ${escHtml(n.employee_name)}
+                                        ${n.status ? `<span style="background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:6px;font-size:10.5px;margin-left:6px;font-weight:700;">${escHtml(n.status)}</span>` : ''}
+                                    </span>
+                                    <span style="color: #94a3b8; font-size: 11px; font-weight: 600;">${escHtml(n.created_at || (n.notification_date + ' ' + (n.notification_time || '')))}</span>
+                                </div>
+                                <div style="font-size: 13px; color: #334155; line-height: 1.45;">${escHtml(n.remarks || 'No remarks text')}</div>
+                                ${n.location ? `<div style="font-size: 11.5px; color: #64748b; margin-top: 4px;"><i class="fas fa-map-marker-alt" style="color: #ef4444; font-size: 10px;"></i> Location: ${escHtml(n.location)}</div>` : ''}
+                                ${n.appointment_date ? `<div style="font-size: 11.5px; color: #7c3aed; margin-top: 3px; font-weight: 600;"><i class="far fa-calendar-alt" style="font-size: 10px;"></i> Appointment: ${escHtml(n.appointment_date)} ${escHtml(n.appointment_time || '')}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `}
             </div>
 
         </div>
