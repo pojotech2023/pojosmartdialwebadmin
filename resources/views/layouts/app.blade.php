@@ -22,7 +22,7 @@
 
     <div class="sidebar-header">
         <div class="logo-badge"><i class="fas fa-bolt"></i></div>
-        <span class="logo-text">Admin Panel</span>
+        <span class="logo-text">{{ auth()->user() && auth()->user()->isAccount() ? 'Account Panel' : 'Admin Panel' }}</span>
     </div>
 
     <ul class="menu">
@@ -33,6 +33,8 @@
             </a>
         </li>
 
+        {{-- Admin-only sections --}}
+        @if(auth()->user() && auth()->user()->isAdmin())
         <li class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">
             <a href="{{ route('employees.index') }}">
                 <i class="fas fa-users"></i>
@@ -67,6 +69,7 @@
                 <span>Settings</span>
             </a>
         </li>
+        @endif
 
         <div class="menu-divider"></div>
 

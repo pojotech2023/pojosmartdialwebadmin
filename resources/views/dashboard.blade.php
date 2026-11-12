@@ -528,6 +528,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div style="display:flex;gap:15px;align-items:end;flex-wrap:wrap">
 
+            @if($isAdmin)
             <div>
                 <label class="form-label">Employee</label>
                 <select name="employee_id">
@@ -539,6 +540,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     @endforeach
                 </select>
             </div>
+            @endif
             <div>
                 <label class="form-label">Status</label>
                 <select name="status">
@@ -665,8 +667,13 @@ function confirmExport() {
 <table>
     <thead>
         <tr>
-            <th>Emp ID</th>
-            <th>Employee Name</th>
+            @if($isAdmin)
+                <th>Emp ID</th>
+                <th>Employee Name</th>
+            @else
+                <th>Lead ID</th>
+                <th>Assigned By (Telecaller)</th>
+            @endif
             <th>Customer Name</th>
             <th>Company Name</th>
             <th>Product Type</th>
@@ -680,8 +687,19 @@ function confirmExport() {
     <tbody>
         @foreach($paginatedRows as $row)
         <tr>
-            <td>{{ $row->emp_id }}</td>
-            <td>{{ $row->employee->name ?? '' }}</td>
+            <td>#{{ $row->id }}</td>
+            <td>
+                <div style="font-weight:600;color:#1e293b;">{{ $row->employee->name ?? '—' }}</div>
+                @if(!$isAdmin && $row->assignedUser)
+                    <div style="font-size:11px;color:#059669;font-weight:700;">
+                        <i class="fas fa-check-circle" style="font-size:10px;"></i> Assigned to you
+                    </div>
+                @elseif($isAdmin && $row->assignedUser)
+                    <div style="font-size:11px;color:#059669;font-weight:700;">
+                        <i class="fas fa-user-check" style="font-size:10px;"></i> {{ $row->assignedUser->name }}
+                    </div>
+                @endif
+            </td>
             <td>{{ $row->customer_name }}</td>
             <td>{{ $row->company_name }}</td>
             <td>

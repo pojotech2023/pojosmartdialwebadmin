@@ -50,46 +50,54 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/notifications/mark-seen', [AuthController::class, 'markNotificationSeen'])
         ->name('dashboard.notifications.mark-seen');
 
-    Route::resource('/employees', UserController::class);
+    /*
+    |--------------------------------------------------------------------------
+    | ADMIN ONLY ROUTES (Employees, Assign Base, WhatsApp, Calendar, Settings)
+    | Account users are redirected to dashboard
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(\App\Http\Middleware\AdminOnly::class)->group(function () {
+        Route::resource('/employees', UserController::class);
 
-    Route::get('/assign-base', [AssignBaseController::class, 'index'])
-        ->name('assign-base.index');
+        Route::get('/assign-base', [AssignBaseController::class, 'index'])
+            ->name('assign-base.index');
 
-    Route::post('/assign-base/import', [AssignBaseController::class, 'import'])
-        ->name('assign-base.import');
+        Route::post('/assign-base/import', [AssignBaseController::class, 'import'])
+            ->name('assign-base.import');
 
-    Route::match(['delete', 'post'], '/assign-base/delete', [AssignBaseController::class, 'delete'])
-        ->name('assign-base.delete');
+        Route::match(['delete', 'post'], '/assign-base/delete', [AssignBaseController::class, 'delete'])
+            ->name('assign-base.delete');
 
-    Route::get('/whatsapp', [WhatsappNotificationController::class, 'index'])
-        ->name('whatsapp.index');
+        Route::get('/whatsapp', [WhatsappNotificationController::class, 'index'])
+            ->name('whatsapp.index');
 
-    Route::post('/whatsapp/import', [WhatsappNotificationController::class, 'import'])
-        ->name('whatsapp.import');
+        Route::post('/whatsapp/import', [WhatsappNotificationController::class, 'import'])
+            ->name('whatsapp.import');
 
-    Route::post('/whatsapp/schedule', [WhatsappNotificationController::class, 'store'])
-        ->name('whatsapp.store');
+        Route::post('/whatsapp/schedule', [WhatsappNotificationController::class, 'store'])
+            ->name('whatsapp.store');
 
-    Route::delete('/whatsapp/contact/delete', [WhatsappNotificationController::class, 'deleteContact'])
-        ->name('whatsapp.contact.delete');
+        Route::delete('/whatsapp/contact/delete', [WhatsappNotificationController::class, 'deleteContact'])
+            ->name('whatsapp.contact.delete');
 
-    Route::get('/calendar', [CalendarController::class, 'index'])
-        ->name('calendar.index');
+        Route::get('/calendar', [CalendarController::class, 'index'])
+            ->name('calendar.index');
 
-    Route::get('/calendar/events', [CalendarController::class, 'events'])
-        ->name('calendar.events');
+        Route::get('/calendar/events', [CalendarController::class, 'events'])
+            ->name('calendar.events');
 
-    // Settings (Product Types & Telecaller Statuses)
-    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-    Route::post('/settings/products', [SettingsController::class, 'storeProduct'])->name('settings.products.store');
-    Route::put('/settings/products/{product}', [SettingsController::class, 'updateProduct'])->name('settings.products.update');
-    Route::delete('/settings/products/{product}', [SettingsController::class, 'destroyProduct'])->name('settings.products.destroy');
+        // Settings (Product Types & Telecaller Statuses)
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/products', [SettingsController::class, 'storeProduct'])->name('settings.products.store');
+        Route::put('/settings/products/{product}', [SettingsController::class, 'updateProduct'])->name('settings.products.update');
+        Route::delete('/settings/products/{product}', [SettingsController::class, 'destroyProduct'])->name('settings.products.destroy');
 
-    Route::post('/settings/statuses', [SettingsController::class, 'storeStatus'])->name('settings.statuses.store');
-    Route::put('/settings/statuses/{telecallerStatus}', [SettingsController::class, 'updateStatus'])->name('settings.statuses.update');
-    Route::delete('/settings/statuses/{telecallerStatus}', [SettingsController::class, 'destroyStatus'])->name('settings.statuses.destroy');
+        Route::post('/settings/statuses', [SettingsController::class, 'storeStatus'])->name('settings.statuses.store');
+        Route::put('/settings/statuses/{telecallerStatus}', [SettingsController::class, 'updateStatus'])->name('settings.statuses.update');
+        Route::delete('/settings/statuses/{telecallerStatus}', [SettingsController::class, 'destroyStatus'])->name('settings.statuses.destroy');
 
-    Route::resource('/products', ProductController::class)->except(['create', 'show', 'edit']);
+        Route::resource('/products', ProductController::class)->except(['create', 'show', 'edit']);
+    });
 
 });
 
