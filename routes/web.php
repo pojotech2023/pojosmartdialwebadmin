@@ -53,6 +53,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/notifications/mark-seen', [AuthController::class, 'markNotificationSeen'])
         ->name('dashboard.notifications.mark-seen');
 
+    Route::post('/dashboard/update-lead-status', [AuthController::class, 'updateLeadStatus'])
+        ->name('dashboard.update-lead-status');
+
     /*
     |--------------------------------------------------------------------------
     | ADMIN ONLY ROUTES (Employees, Assign Base, WhatsApp, Calendar, Settings)

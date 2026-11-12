@@ -68,3 +68,11 @@ Route::post('/assign-lead', [AuthApiController::class, 'assignLead']);
 Route::post('/save-lead-details', [AuthApiController::class, 'saveLeadDetails']);
 Route::match(['get', 'post'], '/lead-details/{assignBaseId?}', [AuthApiController::class, 'getLeadDetails']);
 
+// E. Account Statuses & Lead Status Update APIs (for Mobile App & Web)
+Route::match(['get', 'post'], '/account-statuses', [AuthApiController::class, 'getAccountStatuses']);
+Route::match(['get', 'post'], '/assigned-to-list', [AuthApiController::class, 'getEmployeesList']);
+Route::match(['get', 'post'], '/assigned-to-users', [AuthApiController::class, 'getEmployeesList']);
+Route::post('/update-lead-status', [AuthApiController::class, 'updateLeadStatus']);
+Route::post('/update-status', [AuthApiController::class, 'updateLeadStatus']);
+
+

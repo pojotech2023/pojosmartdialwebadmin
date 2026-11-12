@@ -286,10 +286,21 @@ class AuthController extends Controller
     // ---------- EXPORT DASHBOARD DATA ----------
     public function exportDashboard(Request $request)
     {
-        $query = AssignBase::with(['employee', 'product', 'loanApplication']);
+        $currentUser = Auth::user();
+        $isAdmin = $currentUser ? $currentUser->isAdmin() : false;
 
-        if ($request->filled('employee_id') && $request->employee_id != '') {
-            $query->where('emp_id', $request->employee_id);
+        $query = AssignBase::with(['employee', 'product', 'loanApplication', 'assignedUser', 'leadDetail']);
+
+        if (!$isAdmin) {
+            $query->where(function ($q) use ($currentUser) {
+                $q->where('emp_id', $currentUser->id)
+                  ->orWhere('assigned_to', $currentUser->id);
+            });
+        } elseif ($request->filled('employee_id') && $request->employee_id != '') {
+            $query->where(function ($q) use ($request) {
+                $q->where('emp_id', $request->employee_id)
+                  ->orWhere('assigned_to', $request->employee_id);
+            });
         }
 
         if ($request->filled('product_id') && $request->product_id != '') {
@@ -403,6 +414,63 @@ class AuthController extends Controller
                         'remarks'          => $latestAppointment->remarks,
                     ] : null,
                     'notes'               => $notes,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update Lead Status directly from Dashboard (for Account users & Admins)
+     * POST /dashboard/update-lead-status
+     */
+    public function updateLeadStatus(Request $request)
+    {
+        try {
+            $request->validate([
+                'assign_base_id' => 'required|integer|exists:assign_bases,id',
+                'status'         => 'required|string',
+            ]);
+
+            $currentUser = Auth::user();
+            $lead = AssignBase::findOrFail($request->assign_base_id);
+
+            // If account user, verify lead ownership
+            if ($currentUser && !$currentUser->isAdmin()) {
+                if ($lead->assigned_to != $currentUser->id && $lead->emp_id != $currentUser->id) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'Unauthorized to update this lead',
+                    ], 403);
+                }
+            }
+
+            $status = strtoupper(trim($request->status));
+            $lead->status = $status;
+            $lead->save();
+
+            // Track in notifications remarks
+            if ($currentUser) {
+                Notification::create([
+                    'assign_base_id'    => $lead->id,
+                    'emp_id'            => $currentUser->id,
+                    'notification_date' => Carbon::now()->toDateString(),
+                    'notification_time' => Carbon::now()->toTimeString(),
+                    'remarks'           => 'Status changed to ' . $status . ' by ' . $currentUser->name,
+                    'status'            => $status,
+                ]);
+            }
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Status updated to ' . $status,
+                'data'    => [
+                    'id'     => $lead->id,
+                    'status' => $lead->status,
                 ],
             ]);
         } catch (\Exception $e) {

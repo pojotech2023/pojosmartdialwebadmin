@@ -126,6 +126,41 @@
     .notif-panel-content { padding: 30px 30px 30px 40px; max-width: 880px; margin: 0; }
     #leadDetailsPanel .notif-panel-content { max-width: 100% !important; padding: 24px 32px !important; margin: 0 !important; }
 
+    /* Account Status Select Pills & Badges */
+    .account-status-select {
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        cursor: pointer;
+        outline: none;
+        border: 1.5px solid transparent;
+        transition: all 0.2s ease;
+        display: inline-block;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .account-status-select:hover { filter: brightness(0.96); transform: translateY(-1px); }
+    .account-status-select:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25); }
+
+    .account-status-select.status-new,
+    .status-badge.status-new {
+        background: #e0e7ff; color: #4338ca; border-color: #c7d2fe;
+    }
+    .account-status-select.status-in-progress,
+    .status-badge.status-in-progress {
+        background: #fef3c7; color: #b45309; border-color: #fde68a;
+    }
+    .account-status-select.status-quotation-shared,
+    .status-badge.status-quotation-shared {
+        background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff;
+    }
+    .account-status-select.status-client-replied,
+    .status-badge.status-client-replied {
+        background: #d1fae5; color: #047857; border-color: #a7f3d0;
+    }
+
     .nl-loading { text-align: center; color: #9ca3af; padding: 70px 0; }
     .nl-loading i { font-size: 30px; color: #6d28d9; }
 
@@ -572,10 +607,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 <label class="form-label">Status</label>
                 <select name="status">
                     <option value="">All</option>
-                    <option value="NEW" {{ request('status') == 'NEW' ? 'selected' : '' }}>NEW</option>
-                    <option value="FOLLOW UP" {{ request('status') == 'FOLLOW UP' ? 'selected' : '' }}>FOLLOW UP</option>
-                    <option value="CONFIRMED" {{ request('status') == 'CONFIRMED' ? 'selected' : '' }}>CONFIRMED</option>
-                    <option value="NOPE" {{ request('status') == 'NOPE' ? 'selected' : '' }}>NOPE</option>
+                    @if(!$isAdmin)
+                        <option value="NEW" {{ request('status') == 'NEW' ? 'selected' : '' }}>NEW</option>
+                        <option value="IN PROGRESS" {{ request('status') == 'IN PROGRESS' ? 'selected' : '' }}>IN PROGRESS</option>
+                        <option value="QUOTATION SHARED" {{ request('status') == 'QUOTATION SHARED' ? 'selected' : '' }}>QUOTATION SHARED</option>
+                        <option value="CLIENT REPLIED" {{ request('status') == 'CLIENT REPLIED' ? 'selected' : '' }}>CLIENT REPLIED</option>
+                    @else
+                        <option value="NEW" {{ request('status') == 'NEW' ? 'selected' : '' }}>NEW</option>
+                        <option value="IN PROGRESS" {{ request('status') == 'IN PROGRESS' ? 'selected' : '' }}>IN PROGRESS</option>
+                        <option value="QUOTATION SHARED" {{ request('status') == 'QUOTATION SHARED' ? 'selected' : '' }}>QUOTATION SHARED</option>
+                        <option value="CLIENT REPLIED" {{ request('status') == 'CLIENT REPLIED' ? 'selected' : '' }}>CLIENT REPLIED</option>
+                        <option value="FOLLOW UP" {{ request('status') == 'FOLLOW UP' ? 'selected' : '' }}>FOLLOW UP</option>
+                        <option value="CONFIRMED" {{ request('status') == 'CONFIRMED' ? 'selected' : '' }}>CONFIRMED</option>
+                        <option value="NOPE" {{ request('status') == 'NOPE' ? 'selected' : '' }}>NOPE</option>
+                    @endif
                 </select>
             </div>
 
@@ -738,7 +783,11 @@ function confirmExport() {
                     <span style="color:#94a3b8;font-size:12px;">—</span>
                 @endif
             </td>
-            <td><span class="status-badge status-{{ \Illuminate\Support\Str::slug($row->status) }}">{{ $row->status }}</span></td>
+            <td>
+                <span id="table-status-badge-{{ $row->id }}" class="status-badge status-{{ \Illuminate\Support\Str::slug($row->status) }}">
+                    {{ $row->status }}
+                </span>
+            </td>
             <td>{{ $row->mobile }}</td>
             <td>{{ \Carbon\Carbon::parse($row->assign_date)->format('d/m/Y') }}</td>
             <td>
@@ -834,9 +883,19 @@ function renderLeadDetails(d) {
             </div>
 
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <span class="status-badge status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 7px 16px; font-size: 13px;">
-                    ${escHtml(d.status || 'NEW')}
-                </span>
+                <div style="display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 10px 4px 12px; border-radius: 999px; border: 1px solid #e2e8f0;">
+                    <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Status:</span>
+                    <select class="account-status-select status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}"
+                            data-lead-id="${d.id}"
+                            data-current="${escHtml(d.status || 'NEW')}"
+                            onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
+                            style="padding: 6px 14px; font-size: 12px;">
+                        <option value="NEW" ${String(d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
+                        <option value="IN PROGRESS" ${String(d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
+                        <option value="QUOTATION SHARED" ${String(d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
+                        <option value="CLIENT REPLIED" ${String(d.status).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
+                    </select>
+                </div>
                 <a href="tel:${escHtml(d.mobile)}" style="background: #f1f5f9; color: #0f172a; padding: 10px 18px; border-radius: 12px; text-decoration: none; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
                     <i class="fas fa-phone-alt" style="color: #059669;"></i> ${escHtml(d.mobile)}
                 </a>
@@ -989,7 +1048,7 @@ function renderLeadDetails(d) {
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding: 6px 4px; font-size: 13px; color: #64748b; border-top: 1px solid #f1f5f9;">
                         <span>Assigned Date: <strong style="color:#0f172a;">${escHtml(d.assign_date)}</strong></span>
-                        <span>Current Status: <strong class="status-badge status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 3px 10px; font-size: 11px;">${escHtml(d.status || 'NEW')}</strong></span>
+                        <span>Current Status: <strong id="modal-status-badge-${d.id}" class="status-badge status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 3px 10px; font-size: 11px;">${escHtml(d.status || 'NEW')}</strong></span>
                     </div>
                 </div>
 
@@ -1079,6 +1138,99 @@ function renderLeadDetails(d) {
     `;
 
     document.getElementById('lead-details-content').innerHTML = html;
+}
+
+const UPDATE_LEAD_STATUS_ROUTE = "{{ route('dashboard.update-lead-status') }}";
+
+function changeAccountLeadStatus(leadId, newStatus, selectElement) {
+    if (!leadId || !newStatus) return;
+
+    const oldStatus = selectElement ? (selectElement.getAttribute('data-current') || '') : '';
+    if (selectElement) selectElement.disabled = true;
+
+    fetch(UPDATE_LEAD_STATUS_ROUTE, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            assign_base_id: leadId,
+            status: newStatus
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (selectElement) selectElement.disabled = false;
+        if (res.status) {
+            showStatusToast('Status Updated', 'Lead #' + leadId + ' is now ' + newStatus, true);
+
+            const slug = newStatus.toLowerCase().replace(/\s+/g, '-');
+
+            // Sync all select elements for this lead (in table and in modal)
+            document.querySelectorAll(`select[data-lead-id="${leadId}"]`).forEach(el => {
+                el.className = 'account-status-select status-' + slug;
+                el.setAttribute('data-current', newStatus);
+                el.value = newStatus;
+            });
+
+            // Update badges if present
+            const modalBadge = document.getElementById('modal-status-badge-' + leadId);
+            if (modalBadge) {
+                modalBadge.className = 'status-badge status-' + slug;
+                modalBadge.textContent = newStatus;
+            }
+            const tableBadge = document.getElementById('table-status-badge-' + leadId);
+            if (tableBadge) {
+                tableBadge.className = 'status-badge status-' + slug;
+                tableBadge.textContent = newStatus;
+            }
+        } else {
+            throw new Error(res.message || 'Failed to update status');
+        }
+    })
+    .catch(err => {
+        if (selectElement) {
+            selectElement.disabled = false;
+            if (oldStatus) selectElement.value = oldStatus;
+        }
+        showStatusToast('Update Failed', err.message || err, false);
+    });
+}
+
+function showStatusToast(title, message, isSuccess = true) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        background: ${isSuccess ? 'linear-gradient(135deg,#059669,#047857)' : 'linear-gradient(135deg,#ef4444,#dc2626)'};
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 14px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13.5px;
+        font-weight: 600;
+        animation: cardIn 0.3s ease;
+        min-width: 280px;
+        z-index: 100000;
+    `;
+    toast.innerHTML = `
+        <i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-exclamation-circle'}" style="font-size: 20px;"></i>
+        <div>
+            <div style="font-weight: 800; font-size: 13.5px;">${escHtml(title)}</div>
+            <div style="font-size: 12px; opacity: 0.92; margin-top: 1px;">${escHtml(message)}</div>
+        </div>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s, transform 0.3s';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-6px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3200);
 }
 
 document.addEventListener('keydown', function(e) {

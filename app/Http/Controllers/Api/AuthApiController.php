@@ -289,25 +289,96 @@ class AuthApiController extends Controller
     public function updateAssignBaseStatus(Request $request)
     {
         $request->validate([
-            'id' => 'required|integer',
-            'emp_id' => 'required|integer',
-            'status' => 'required|in:NEW,CONFIRMED,FOLLOW UP,NOPE',
+            'id'     => 'required|integer',
+            'emp_id' => 'nullable|integer',
+            'status' => 'required|string',
         ]);
 
-        $assignBase = AssignBase::where('id', $request->id)->where('emp_id', $request->emp_id)->first();
+        $query = AssignBase::where('id', $request->id);
+        if ($request->filled('emp_id')) {
+            $empId = $request->emp_id;
+            $query->where(function($q) use ($empId) {
+                $q->where('emp_id', $empId)
+                  ->orWhere('assigned_to', $empId);
+            });
+        }
+
+        $assignBase = $query->first();
         if (!$assignBase) {
             return response()->json([
-                'status' => false,
-                'message' => 'Assign Base record not found or does not belong to the employee',
+                'status'  => false,
+                'message' => 'Assign Base record not found or does not belong to the user',
             ], 404);
         }
 
-        $assignBase->update(['status' => $request->status]);
+        $assignBase->status = strtoupper(trim($request->status));
+        $assignBase->save();
 
         return response()->json([
-            'status' => true,
-            'message' => 'Status updated successfully',
+            'status'  => true,
+            'message' => 'Status updated successfully to ' . $assignBase->status,
+            'data'    => [
+                'id'     => $assignBase->id,
+                'status' => $assignBase->status,
+            ],
         ]);
+    }
+
+    /**
+     * Update Lead Status API (for Mobile App & Web)
+     * POST /api/update-lead-status
+     * POST /api/update-status
+     */
+    public function updateLeadStatus(Request $request)
+    {
+        try {
+            $id = $request->input('assign_base_id', $request->input('id'));
+            if (!$id) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'assign_base_id or id is required',
+                ], 422);
+            }
+
+            $status = strtoupper(trim((string) $request->input('status', '')));
+            if (!$status) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'status is required',
+                ], 422);
+            }
+
+            $assignBase = AssignBase::findOrFail($id);
+            $assignBase->status = $status;
+            $assignBase->save();
+
+            // Optional: if remarks passed, add to notifications history
+            if ($request->filled('remarks')) {
+                $empId = $request->input('emp_id', $request->input('assigned_to', $assignBase->assigned_to ?? $assignBase->emp_id));
+                Notification::create([
+                    'assign_base_id'    => $assignBase->id,
+                    'emp_id'            => $empId,
+                    'notification_date' => Carbon::now()->toDateString(),
+                    'notification_time' => Carbon::now()->toTimeString(),
+                    'remarks'           => $request->input('remarks'),
+                    'status'            => $status,
+                ]);
+            }
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Status updated successfully to ' . $status,
+                'data'    => [
+                    'id'     => $assignBase->id,
+                    'status' => $assignBase->status,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function updatePassword(Request $request)
@@ -1767,11 +1838,16 @@ class AuthApiController extends Controller
         try {
             $query = User::query();
 
-            // Optional role filter (e.g. ?role=Account or ?role=Telecaller)
+            // Mobile app uses this API for "Assigned To" dropdown -> ONLY show Account role users!
             if ($request->filled('role')) {
-                $query->where('role', $request->role);
-            } elseif ($request->boolean('accounts_only') || $request->boolean('account')) {
-                $query->where('role', 'Account');
+                if (strtolower($request->role) !== 'all') {
+                    $query->whereRaw('LOWER(role) = ?', [strtolower($request->role)]);
+                }
+            } elseif ($request->boolean('all')) {
+                // Return all users
+            } else {
+                // By default, for mobile "Assigned To" dropdown, return Account role ONLY
+                $query->whereRaw('LOWER(role) = ?', ['account']);
             }
 
             $employees = $query->orderBy('name', 'asc')
@@ -1779,7 +1855,7 @@ class AuthApiController extends Controller
                 ->map(fn($u) => [
                     'id'     => $u->id,
                     'name'   => $u->name,
-                    'role'   => $u->role ?? 'Telecaller',
+                    'role'   => $u->role ?? 'Account',
                     'mobile' => $u->mobile,
                     'email'  => $u->email,
                 ]);
@@ -1787,6 +1863,43 @@ class AuthApiController extends Controller
             return response()->json([
                 'status' => true,
                 'data'   => $employees,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Account Statuses API (for Mobile App & Web)
+     * GET /api/account-statuses (also supports POST)
+     */
+    public function getAccountStatuses(Request $request)
+    {
+        try {
+            $statuses = [
+                'NEW',
+                'IN PROGRESS',
+                'QUOTATION SHARED',
+                'CLIENT REPLIED',
+            ];
+
+            $items = [
+                ['id' => 1, 'name' => 'NEW', 'slug' => 'new'],
+                ['id' => 2, 'name' => 'IN PROGRESS', 'slug' => 'in-progress'],
+                ['id' => 3, 'name' => 'QUOTATION SHARED', 'slug' => 'quotation-shared'],
+                ['id' => 4, 'name' => 'CLIENT REPLIED', 'slug' => 'client-replied'],
+            ];
+
+            $isObjects = $request->input('format') === 'objects' || $request->boolean('objects');
+            $data = $isObjects ? $items : $statuses;
+
+            return response()->json([
+                'status' => true,
+                'data'   => $data,
+                'items'  => $items,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1920,12 +2033,17 @@ class AuthApiController extends Controller
             if ($cusCompanyName) {
                 $assignBase->company_name = $cusCompanyName;
             }
+
+            // Mobile submit sets status to NEW (or requested status)
+            $assignBase->status = strtoupper(trim((string) $request->input('status', 'NEW')));
             $assignBase->save();
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Lead details saved successfully',
                 'data'    => [
+                    'assign_base_id'   => $assignBase->id,
+                    'status'           => $assignBase->status,
                     'assigned_to'      => $leadDetail->assigned_to ? (int)$leadDetail->assigned_to : null,
                     'project_type'     => (string) $leadDetail->project_type,
                     'cus_company_name' => (string) $leadDetail->cus_company_name,
