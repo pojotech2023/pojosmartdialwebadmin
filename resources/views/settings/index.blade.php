@@ -65,45 +65,9 @@
     @endif
 
     {{-- ========================================================================= --}}
-    {{-- TAB 1: PRODUCT TYPES (FULL SCREEN) --}}
+    {{-- TAB 1: PRODUCT TYPES --}}
     {{-- ========================================================================= --}}
     <div id="tabProductsView" style="{{ $activeTab === 'products' ? '' : 'display:none;' }}">
-
-        {{-- Stats Grid (Full Width) --}}
-        <div class="settings-stats-row">
-            <div class="settings-stat-card">
-                <div class="stat-icon-wrap stat-grad-indigo">
-                    <i class="fas fa-cubes"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-num">{{ $products->count() }}</div>
-                    <div class="stat-label">Total Product Types</div>
-                    <div class="stat-subtext">Active catalog entries</div>
-                </div>
-            </div>
-
-            <div class="settings-stat-card">
-                <div class="stat-icon-wrap stat-grad-emerald">
-                    <i class="fas fa-mobile-screen-button"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-num">{{ $products->where('is_active', true)->count() }}</div>
-                    <div class="stat-label">Active in Mobile App</div>
-                    <div class="stat-subtext">Available in telecaller dropdown</div>
-                </div>
-            </div>
-
-            <div class="settings-stat-card">
-                <div class="stat-icon-wrap stat-grad-amber">
-                    <i class="fas fa-user-check"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-num">{{ $products->sum('assign_bases_count') }}</div>
-                    <div class="stat-label">Customers Assigned</div>
-                    <div class="stat-subtext">Total leads mapped to products</div>
-                </div>
-            </div>
-        </div>
 
         {{-- Toolbar / Action Card --}}
         <div class="settings-toolbar-card">
@@ -111,7 +75,7 @@
                 <i class="fas fa-search"></i>
                 <input type="text" 
                        id="searchProductsInput" 
-                       placeholder="Search products by name or description..." 
+                       placeholder="Search product name..." 
                        oninput="filterProductsTable(this.value)">
             </div>
             <div class="toolbar-actions">
@@ -121,53 +85,30 @@
             </div>
         </div>
 
-        {{-- Full Screen Products Table --}}
+        {{-- Minimal Products Table (Product Name & Action Only) --}}
         <div class="settings-table-card">
             <table class="settings-custom-table" id="productsTable">
                 <thead>
                     <tr>
-                        <th style="width:70px;"># ID</th>
-                        <th>Product Name</th>
-                        <th>Description</th>
-                        <th style="text-align:center;">Assigned Leads</th>
-                        <th style="text-align:center;">Mobile Status</th>
-                        <th style="text-align:center;width:130px;">Action</th>
+                        <th style="padding-left: 28px;">Product Name</th>
+                        <th style="text-align: right; padding-right: 28px; width: 140px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($products as $product)
-                    <tr class="product-row" data-search="{{ strtolower($product->name . ' ' . ($product->description ?? '')) }}">
-                        <td>
-                            <span class="id-badge">#{{ $product->id }}</span>
-                        </td>
-                        <td>
+                    <tr class="product-row" data-search="{{ strtolower($product->name) }}">
+                        <td style="padding-left: 28px;">
                             <div class="entity-name-cell">
                                 <div class="entity-avatar-icon">
                                     <i class="fas fa-cube"></i>
                                 </div>
-                                <div>
-                                    <div class="entity-primary-title">{{ $product->name }}</div>
-                                    <div class="entity-secondary-text">Updated {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'recently' }}</div>
+                                <div class="entity-primary-title" style="font-size: 15px; font-weight: 700; color: #1e293b;">
+                                    {{ $product->name }}
                                 </div>
                             </div>
                         </td>
-                        <td>
-                            <div class="entity-desc-text">{{ $product->description ?: 'No description provided' }}</div>
-                        </td>
-                        <td style="text-align:center;">
-                            <span class="stat-counter-pill">
-                                <i class="fas fa-users"></i> {{ $product->assign_bases_count }} customers
-                            </span>
-                        </td>
-                        <td style="text-align:center;">
-                            @if($product->is_active)
-                                <span class="badge-status-active"><i class="fas fa-circle-check"></i> Active</span>
-                            @else
-                                <span class="badge-status-inactive"><i class="fas fa-circle-xmark"></i> Inactive</span>
-                            @endif
-                        </td>
-                        <td style="text-align:center;">
-                            <div class="row-actions-group">
+                        <td style="text-align: right; padding-right: 28px;">
+                            <div class="row-actions-group" style="justify-content: flex-end;">
                                 <button type="button" 
                                         class="action-btn-edit" 
                                         onclick="openEditProductModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ addslashes($product->description ?? '') }}', {{ $product->is_active ? 1 : 0 }})"
@@ -187,7 +128,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="table-empty-cell">
+                        <td colspan="2" class="table-empty-cell">
                             <i class="fas fa-box-open"></i>
                             <div class="empty-title">No Product Types Found</div>
                             <div class="empty-desc">Create your first product type to start assigning leads.</div>
@@ -201,45 +142,9 @@
     </div>
 
     {{-- ========================================================================= --}}
-    {{-- TAB 2: TELECALLER STATUS (FULL SCREEN) --}}
+    {{-- TAB 2: TELECALLER STATUS --}}
     {{-- ========================================================================= --}}
     <div id="tabStatusesView" style="{{ $activeTab === 'statuses' ? '' : 'display:none;' }}">
-
-        {{-- Stats Grid (Full Width) --}}
-        <div class="settings-stats-row">
-            <div class="settings-stat-card">
-                <div class="stat-icon-wrap stat-grad-blue">
-                    <i class="fas fa-tags"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-num">{{ $statuses->count() }}</div>
-                    <div class="stat-label">Total Telecaller Statuses</div>
-                    <div class="stat-subtext">Configured call remark options</div>
-                </div>
-            </div>
-
-            <div class="settings-stat-card">
-                <div class="stat-icon-wrap stat-grad-emerald">
-                    <i class="fas fa-check-double"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-num">{{ $statuses->where('is_active', true)->count() }}</div>
-                    <div class="stat-label">Active in App</div>
-                    <div class="stat-subtext">Visible in mobile call remark screen</div>
-                </div>
-            </div>
-
-            <div class="settings-stat-card">
-                <div class="stat-icon-wrap stat-grad-purple">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-num">{{ $statuses->where('requires_appointment', true)->count() }}</div>
-                    <div class="stat-label">Requires Appointment</div>
-                    <div class="stat-subtext">Prompts telecaller for date & time</div>
-                </div>
-            </div>
-        </div>
 
         {{-- Toolbar / Action Card --}}
         <div class="settings-toolbar-card">
@@ -247,7 +152,7 @@
                 <i class="fas fa-search"></i>
                 <input type="text" 
                        id="searchStatusesInput" 
-                       placeholder="Search statuses by name, description, or color..." 
+                       placeholder="Search status name..." 
                        oninput="filterStatusesTable(this.value)">
             </div>
             <div class="toolbar-actions">
@@ -257,64 +162,28 @@
             </div>
         </div>
 
-        {{-- Full Screen Statuses Table --}}
+        {{-- Minimal Statuses Table (Status Name & Action Only) --}}
         <div class="settings-table-card">
             <table class="settings-custom-table" id="statusesTable">
                 <thead>
                     <tr>
-                        <th style="width:70px;"># ID</th>
-                        <th>Status Badge & Name</th>
-                        <th>Description</th>
-                        <th style="text-align:center;">Appointment Required?</th>
-                        <th style="text-align:center;">Location Required?</th>
-                        <th style="text-align:center;">App Status</th>
-                        <th style="text-align:center;width:130px;">Action</th>
+                        <th style="padding-left: 28px;">Status Name</th>
+                        <th style="text-align: right; padding-right: 28px; width: 140px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($statuses as $st)
-                    <tr class="status-row" data-search="{{ strtolower($st->name . ' ' . ($st->description ?? '')) }}">
-                        <td>
-                            <span class="id-badge">#{{ $st->id }}</span>
-                        </td>
-                        <td>
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                <div class="status-color-circle" style="background: {{ $st->color ?: '#6366f1' }};"></div>
-                                <span class="status-preview-pill" style="border-color: {{ $st->color }}35; background: {{ $st->color }}12; color: {{ $st->color ?: '#334155' }};">
-                                    <i class="fas fa-tag" style="font-size:10px;margin-right:4px;"></i> {{ $st->name }}
+                    <tr class="status-row" data-search="{{ strtolower($st->name) }}">
+                        <td style="padding-left: 28px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <div class="status-color-circle" style="background: {{ $st->color ?: '#6366f1' }}; width: 12px; height: 12px; border-radius: 50%;"></div>
+                                <span class="status-preview-pill" style="border-color: {{ $st->color ?: '#6366f1' }}35; background: {{ $st->color ?: '#6366f1' }}15; color: {{ $st->color ?: '#334155' }}; font-weight: 700; font-size: 13.5px; padding: 6px 16px; border-radius: 999px;">
+                                    <i class="fas fa-tag" style="font-size:11px;margin-right:6px;"></i> {{ $st->name }}
                                 </span>
                             </div>
                         </td>
-                        <td>
-                            <div class="entity-desc-text">{{ $st->description ?: '—' }}</div>
-                        </td>
-                        <td style="text-align:center;">
-                            @if($st->requires_appointment)
-                                <span class="badge-flag-yes-amber">
-                                    <i class="fas fa-calendar-day"></i> Yes (Date & Time)
-                                </span>
-                            @else
-                                <span class="badge-flag-no"><i class="fas fa-minus"></i> No</span>
-                            @endif
-                        </td>
-                        <td style="text-align:center;">
-                            @if($st->requires_location)
-                                <span class="badge-flag-yes-indigo">
-                                    <i class="fas fa-map-location-dot"></i> Yes (Meeting / Location)
-                                </span>
-                            @else
-                                <span class="badge-flag-no"><i class="fas fa-minus"></i> No</span>
-                            @endif
-                        </td>
-                        <td style="text-align:center;">
-                            @if($st->is_active)
-                                <span class="badge-status-active"><i class="fas fa-circle-check"></i> Active</span>
-                            @else
-                                <span class="badge-status-inactive"><i class="fas fa-circle-xmark"></i> Inactive</span>
-                            @endif
-                        </td>
-                        <td style="text-align:center;">
-                            <div class="row-actions-group">
+                        <td style="text-align: right; padding-right: 28px;">
+                            <div class="row-actions-group" style="justify-content: flex-end;">
                                 <button type="button" 
                                         class="action-btn-edit" 
                                         onclick="openEditStatusModal({{ $st->id }}, '{{ addslashes($st->name) }}', '{{ $st->color }}', '{{ addslashes($st->description ?? '') }}', {{ $st->requires_appointment ? 1 : 0 }}, {{ $st->requires_location ? 1 : 0 }}, {{ $st->is_active ? 1 : 0 }}, {{ $st->sort_order }})"
@@ -334,7 +203,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="table-empty-cell">
+                        <td colspan="2" class="table-empty-cell">
                             <i class="fas fa-tags"></i>
                             <div class="empty-title">No Telecaller Statuses Found</div>
                             <div class="empty-desc">Add statuses like Quotation Shared, Appointment-Online, etc.</div>
