@@ -90,29 +90,45 @@ class AuthController extends Controller
         $products = Product::where('is_active', true)->orderBy('name')->pluck('name', 'id');
 
         // ================= CARD COUNTS =================
-        $cardQuery = User::leftJoin('assign_bases', 'users.id', '=', 'assign_bases.emp_id')
-            ->select(
-                'users.id',
-                'users.name',
-                \DB::raw('COUNT(assign_bases.id) as total')
-            )
-            ->groupBy('users.id', 'users.name')
-            ->orderBy('users.name');
-
         if (!$isAdmin) {
-            $cardQuery->where('users.id', $currentUser->id);
+            $myTotal = AssignBase::where(function ($q) use ($currentUser) {
+                $q->where('emp_id', $currentUser->id)
+                  ->orWhere('assigned_to', $currentUser->id);
+            })->count();
+
+            $cardData = collect([
+                (object)[
+                    'id'    => $currentUser->id,
+                    'name'  => $currentUser->name,
+                    'total' => $myTotal,
+                ]
+            ]);
+        } else {
+            $cardData = User::leftJoin('assign_bases', 'users.id', '=', 'assign_bases.emp_id')
+                ->select(
+                    'users.id',
+                    'users.name',
+                    \DB::raw('COUNT(assign_bases.id) as total')
+                )
+                ->groupBy('users.id', 'users.name')
+                ->orderBy('users.name')
+                ->get();
         }
 
-        $cardData = $cardQuery->get();
-
         // ================= TABLE DATA =================
-        $query = AssignBase::with(['employee', 'product']);
+        $query = AssignBase::with(['employee', 'product', 'assignedUser', 'leadDetail']);
 
         if (!$isAdmin) {
-            // Account users see records assigned to their account
-            $query->where('emp_id', $currentUser->id);
+            // Account users see records assigned to them (either directly or assigned_to)
+            $query->where(function ($q) use ($currentUser) {
+                $q->where('emp_id', $currentUser->id)
+                  ->orWhere('assigned_to', $currentUser->id);
+            });
         } elseif ($request->filled('employee_id')) {
-            $query->where('emp_id', $request->employee_id);
+            $query->where(function ($q) use ($request) {
+                $q->where('emp_id', $request->employee_id)
+                  ->orWhere('assigned_to', $request->employee_id);
+            });
         }
 
         if ($request->filled('product_id')) {

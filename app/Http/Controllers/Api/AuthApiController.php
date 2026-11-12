@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 use App\Models\AssignBase;
 use App\Models\Notification;
 use App\Models\DeviceToken;
+use App\Models\LeadDetail;
+use App\Models\TelecallerStatus;
+use App\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Services\FirebaseService;
 use App\Jobs\SendScheduledNotification;
@@ -234,9 +237,12 @@ class AuthApiController extends Controller
 
         $defaultProduct = \App\Models\Product::where('is_active', true)->first();
 
-        // Query with filter: emp_id, assign_date, and optional status
-        $data = AssignBase::with(['product', 'employee'])
-            ->where('emp_id', $request->emp_id)
+        // Query with filter: emp_id or assigned_to, assign_date, and optional status
+        $data = AssignBase::with(['product', 'employee', 'assignedUser', 'leadDetail'])
+            ->where(function ($q) use ($request) {
+                $q->where('emp_id', $request->emp_id)
+                  ->orWhere('assigned_to', $request->emp_id);
+            })
             ->where('assign_date', '=', $assignDate)
             ->when($request->filled('status') && strtoupper($request->status) !== 'ALL', fn ($q) => $q->where('status', $request->status))
             ->get()
@@ -258,6 +264,8 @@ class AuthApiController extends Controller
                 return [
                     'id'                  => $row->id,
                     'emp_id'              => $row->emp_id,
+                    'assigned_to'         => $row->assigned_to ? (int)$row->assigned_to : null,
+                    'assigned_to_name'    => $row->assignedUser?->name,
                     'employee_name'       => $row->employee?->name ?? '—',
                     'employee_role'       => $empRole,
                     'is_account'          => $isAccount,
@@ -1693,6 +1701,316 @@ class AuthApiController extends Controller
             return response()->json([
                 'status'  => false,
                 'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * A. Remark Select Status Dropdown API
+     * GET /api/remark-statuses (also supports POST)
+     */
+    public function getRemarkStatuses(Request $request)
+    {
+        try {
+            $query = TelecallerStatus::where('is_active', true)
+                ->orderBy('sort_order', 'asc')
+                ->orderBy('id', 'asc');
+
+            $statuses = $query->get();
+
+            if ($statuses->isEmpty()) {
+                $statusList = [
+                    'Quotation Shared',
+                    'Appointment-Online',
+                    'Appointment-Offline',
+                ];
+                $items = collect($statusList)->map(fn($name, $idx) => [
+                    'id'   => $idx + 1,
+                    'name' => $name,
+                    'slug' => \Illuminate\Support\Str::slug($name),
+                ])->values()->all();
+            } else {
+                $statusList = $statuses->pluck('name')->values()->all();
+                $items = $statuses->map(fn($s) => [
+                    'id'                   => $s->id,
+                    'name'                 => $s->name,
+                    'slug'                 => $s->slug,
+                    'color'                => $s->color,
+                    'requires_appointment' => (bool) $s->requires_appointment,
+                    'requires_location'    => (bool) $s->requires_location,
+                ])->values()->all();
+            }
+
+            // If caller explicitly asks for objects format (?format=objects or ?objects=1)
+            $isObjects = $request->input('format') === 'objects' || $request->boolean('objects');
+            $data = $isObjects ? $items : $statusList;
+
+            return response()->json([
+                'status' => true,
+                'data'   => $data,
+                'items'  => $items,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * B. Assigned To Employee Dropdown List API
+     * GET /api/employees & GET /api/employee-list (also supports POST)
+     */
+    public function getEmployeesList(Request $request)
+    {
+        try {
+            $query = User::query();
+
+            // Optional role filter (e.g. ?role=Account or ?role=Telecaller)
+            if ($request->filled('role')) {
+                $query->where('role', $request->role);
+            } elseif ($request->boolean('accounts_only') || $request->boolean('account')) {
+                $query->where('role', 'Account');
+            }
+
+            $employees = $query->orderBy('name', 'asc')
+                ->get()
+                ->map(fn($u) => [
+                    'id'     => $u->id,
+                    'name'   => $u->name,
+                    'role'   => $u->role ?? 'Telecaller',
+                    'mobile' => $u->mobile,
+                    'email'  => $u->email,
+                ]);
+
+            return response()->json([
+                'status' => true,
+                'data'   => $employees,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * C. Assigned To Save API
+     * POST /api/assign-lead
+     */
+    public function assignLead(Request $request)
+    {
+        try {
+            $request->validate([
+                'assign_base_id' => 'required|integer|exists:assign_bases,id',
+                'emp_id'         => 'nullable|integer|exists:users,id',
+                'assigned_to'    => 'required|integer|exists:users,id',
+            ]);
+
+            $assignBase = AssignBase::with(['employee', 'assignedUser'])->findOrFail($request->assign_base_id);
+
+            // Update assigned_to on assign_bases table
+            $assignBase->assigned_to = $request->assigned_to;
+            if ($request->filled('emp_id')) {
+                $assignBase->emp_id = $request->emp_id;
+            }
+            $assignBase->save();
+
+            // Sync with lead_details table
+            $leadDetail = LeadDetail::updateOrCreate(
+                ['assign_base_id' => $assignBase->id],
+                [
+                    'emp_id'      => $assignBase->emp_id,
+                    'assigned_to' => $request->assigned_to,
+                ]
+            );
+
+            $assignedUser = User::find($request->assigned_to);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Lead assigned successfully',
+                'data'    => [
+                    'assign_base_id'   => $assignBase->id,
+                    'emp_id'           => $assignBase->emp_id,
+                    'assigned_to'      => (int) $assignBase->assigned_to,
+                    'assigned_to_name' => $assignedUser?->name,
+                    'assigned_to_role' => $assignedUser?->role,
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => $e->validator->errors()->first(),
+                'errors'  => $e->validator->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * D. Lead Project Details Submit API
+     * POST /api/save-lead-details
+     */
+    public function saveLeadDetails(Request $request)
+    {
+        try {
+            $request->validate([
+                'assign_base_id'   => 'required|integer|exists:assign_bases,id',
+                'emp_id'           => 'nullable|integer|exists:users,id',
+                'assigned_to'      => 'nullable|integer|exists:users,id',
+                'project_type'     => 'nullable|string|max:255',
+                'cus_company_name' => 'nullable|string|max:255',
+                'cus_mail'         => 'nullable|string|max:255',
+                'price'            => 'nullable|string|max:50',
+                'gst'              => 'nullable|string|max:5',
+                'gst_no'           => 'nullable|string|max:50',
+            ]);
+
+            $assignBase = AssignBase::findOrFail($request->assign_base_id);
+
+            $gst = strtoupper(trim((string) $request->input('gst', 'N')));
+            if ($gst !== 'Y' && $gst !== 'YES') {
+                $gst = 'N';
+                $gstNo = '';
+            } else {
+                $gst = 'Y';
+                $gstNo = trim((string) $request->input('gst_no', ''));
+            }
+
+            $empId = $request->emp_id ?? $assignBase->emp_id;
+            $assignedTo = $request->assigned_to ?? $assignBase->assigned_to;
+            $projectType = $request->input('project_type', $assignBase->product_type);
+            $cusCompanyName = $request->input('cus_company_name', $assignBase->company_name);
+            $cusMail = $request->input('cus_mail');
+            $price = $request->input('price');
+
+            // Save or update lead_details
+            $leadDetail = LeadDetail::updateOrCreate(
+                ['assign_base_id' => $assignBase->id],
+                [
+                    'emp_id'           => $empId,
+                    'assigned_to'      => $assignedTo,
+                    'project_type'     => $projectType,
+                    'cus_company_name' => $cusCompanyName,
+                    'cus_mail'         => $cusMail,
+                    'price'            => $price,
+                    'gst'              => $gst,
+                    'gst_no'           => $gstNo,
+                ]
+            );
+
+            // Sync with assign_bases
+            if ($assignedTo) {
+                $assignBase->assigned_to = $assignedTo;
+            }
+            if ($projectType) {
+                $assignBase->product_type = $projectType;
+                $matchedProduct = Product::where('name', $projectType)->first();
+                if ($matchedProduct) {
+                    $assignBase->product_id = $matchedProduct->id;
+                }
+            }
+            if ($cusCompanyName) {
+                $assignBase->company_name = $cusCompanyName;
+            }
+            $assignBase->save();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Lead details saved successfully',
+                'data'    => [
+                    'assigned_to'      => $leadDetail->assigned_to ? (int)$leadDetail->assigned_to : null,
+                    'project_type'     => (string) $leadDetail->project_type,
+                    'cus_company_name' => (string) $leadDetail->cus_company_name,
+                    'cus_mail'         => (string) ($leadDetail->cus_mail ?? ''),
+                    'price'            => (string) ($leadDetail->price ?? ''),
+                    'gst'              => (string) ($leadDetail->gst ?? 'N'),
+                    'gst_no'           => (string) ($leadDetail->gst_no ?? ''),
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => $e->validator->errors()->first(),
+                'errors'  => $e->validator->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * D. Lead Project Details Prefill API
+     * GET /api/lead-details/{assignBaseId?} (also supports POST)
+     */
+    public function getLeadDetails(Request $request, $assignBaseId = null)
+    {
+        try {
+            $id = $assignBaseId ?? $request->input('assign_base_id');
+
+            if (!$id) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'assign_base_id is required',
+                ], 422);
+            }
+
+            $assignBase = AssignBase::with(['assignedUser', 'employee'])->find($id);
+
+            if (!$assignBase) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Assign base lead not found',
+                ], 404);
+            }
+
+            $leadDetail = LeadDetail::with('assignedTo')->where('assign_base_id', $id)->first();
+
+            if ($leadDetail) {
+                $assignedToId = $leadDetail->assigned_to ?? $assignBase->assigned_to;
+                $projectType = $leadDetail->project_type ?? $assignBase->product_type ?? '';
+                $companyName = $leadDetail->cus_company_name ?? $assignBase->company_name ?? '';
+                $cusMail = $leadDetail->cus_mail ?? '';
+                $price = $leadDetail->price ?? '';
+                $gst = $leadDetail->gst ?? 'N';
+                $gstNo = $leadDetail->gst_no ?? '';
+            } else {
+                // Graceful fallback from assign_bases for initial form opening
+                $assignedToId = $assignBase->assigned_to;
+                $projectType = $assignBase->product_type ?? '';
+                $companyName = $assignBase->company_name ?? '';
+                $cusMail = '';
+                $price = '';
+                $gst = 'N';
+                $gstNo = '';
+            }
+
+            return response()->json([
+                'status' => true,
+                'data'   => [
+                    'assigned_to'      => $assignedToId ? (int)$assignedToId : null,
+                    'project_type'     => (string) $projectType,
+                    'cus_company_name' => (string) $companyName,
+                    'cus_mail'         => (string) $cusMail,
+                    'price'            => (string) $price,
+                    'gst'              => (string) $gst,
+                    'gst_no'           => (string) $gstNo,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
             ], 500);
         }
     }

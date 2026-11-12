@@ -8,6 +8,7 @@ class AssignBase extends Model
 {
     protected $fillable = [
         'emp_id',
+        'assigned_to',
         'customer_name',
         'company_name',
         'product_id',
@@ -29,6 +30,16 @@ class AssignBase extends Model
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function leadDetail()
+    {
+        return $this->hasOne(LeadDetail::class, 'assign_base_id');
     }
 
     public function loanApplication()

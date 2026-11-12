@@ -34,14 +34,20 @@ class AssignBaseController extends Controller
         $products = Product::where('is_active', true)->orderBy('name')->pluck('name', 'id');
 
         // Base DB query
-        $query = AssignBase::with(['employee', 'product']);
+        $query = AssignBase::with(['employee', 'product', 'assignedUser', 'leadDetail']);
 
         /* ========== EMPLOYEE FILTER ========== */
         if (!$isAdmin) {
-            // Account user locked to leads assigned to their account
-            $query->where('emp_id', $currentUser->id);
+            // Account user locked to leads assigned to them (emp_id or assigned_to)
+            $query->where(function ($q) use ($currentUser) {
+                $q->where('emp_id', $currentUser->id)
+                  ->orWhere('assigned_to', $currentUser->id);
+            });
         } elseif ($request->filled('employee_id')) {
-            $query->where('emp_id', $request->employee_id);
+            $query->where(function ($q) use ($request) {
+                $q->where('emp_id', $request->employee_id)
+                  ->orWhere('assigned_to', $request->employee_id);
+            });
         }
 
         /* ========== PRODUCT TYPE FILTER ========== */

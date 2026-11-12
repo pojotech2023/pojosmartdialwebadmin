@@ -53,3 +53,18 @@ Route::match(['post', 'delete'], '/telecaller-statuses/{id}/delete', [AuthApiCon
 Route::match(['get', 'post'], '/accounts', [AuthApiController::class, 'getAccountUsers']);
 Route::match(['get', 'post'], '/account-users', [AuthApiController::class, 'getAccountUsers']);
 Route::match(['get', 'post'], '/account-employees', [AuthApiController::class, 'getAccountUsers']);
+
+// A. Remark Select Status Dropdown API
+Route::match(['get', 'post'], '/remark-statuses', [AuthApiController::class, 'getRemarkStatuses']);
+
+// B. Assigned To Employee Dropdown List API
+Route::match(['get', 'post'], '/employees', [AuthApiController::class, 'getEmployeesList']);
+Route::match(['get', 'post'], '/employee-list', [AuthApiController::class, 'getEmployeesList']);
+
+// C. Assigned To Save API
+Route::post('/assign-lead', [AuthApiController::class, 'assignLead']);
+
+// D. Lead Project Details Submit & Prefill APIs
+Route::post('/save-lead-details', [AuthApiController::class, 'saveLeadDetails']);
+Route::match(['get', 'post'], '/lead-details/{assignBaseId?}', [AuthApiController::class, 'getLeadDetails']);
+
