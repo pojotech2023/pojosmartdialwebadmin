@@ -66,10 +66,10 @@
                 <td>
                     <select name="role" class="cal-select" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#fff;" required>
                         <option value="Telecaller" {{ old('role', 'Telecaller') === 'Telecaller' ? 'selected' : '' }}>
-                            Telecaller (Mobile App Login)
+                            Telecaller
                         </option>
                         <option value="Account" {{ old('role') === 'Account' ? 'selected' : '' }}>
-                            Account (Web Portal Login)
+                            Account
                         </option>
                     </select>
                 </td>

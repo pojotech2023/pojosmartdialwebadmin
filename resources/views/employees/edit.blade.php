@@ -39,10 +39,10 @@
     <label class="form-label">Role</label>
     <select name="role" class="cal-select" style="width:100%;margin-bottom:14px;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#fff;" required>
         <option value="Telecaller" {{ old('role', $employee->role ?? 'Telecaller') === 'Telecaller' ? 'selected' : '' }}>
-            Telecaller (Mobile App Login)
+            Telecaller
         </option>
         <option value="Account" {{ old('role', $employee->role ?? '') === 'Account' ? 'selected' : '' }}>
-            Account (Web Portal Login)
+            Account
         </option>
         @if($employee->role === 'Admin')
             <option value="Admin" selected>Admin</option>

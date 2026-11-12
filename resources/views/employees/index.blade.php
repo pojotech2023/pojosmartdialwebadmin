@@ -36,7 +36,7 @@
                 <td>
                     @if(strtolower($user->role ?? '') === 'account')
                         <span style="background:#ecfdf5;color:#047857;padding:4px 10px;border-radius:14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;border:1px solid #a7f3d0;">
-                            <i class="fas fa-laptop"></i> Account (Web)
+                            <i class="fas fa-laptop"></i> Account
                         </span>
                     @elseif(strtolower($user->role ?? '') === 'admin')
                         <span style="background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;border:1px solid #fde68a;">
@@ -44,7 +44,7 @@
                         </span>
                     @else
                         <span style="background:#eef2ff;color:#4338ca;padding:4px 10px;border-radius:14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;border:1px solid #c7d2fe;">
-                            <i class="fas fa-headset"></i> Telecaller (Mobile)
+                            <i class="fas fa-headset"></i> Telecaller
                         </span>
                     @endif
                 </td>
