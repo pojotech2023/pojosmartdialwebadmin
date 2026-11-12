@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class AuthApiController extends Controller
 {
@@ -2113,18 +2114,179 @@ class AuthApiController extends Controller
                 $gstNo = '';
             }
 
+            $accountStatus = $leadDetail?->account_status ?? $assignBase->account_status ?? $assignBase->status ?? 'NEW';
+            $accountRemarks = $leadDetail?->account_remarks ?? $assignBase->account_remarks ?? '';
+            $accountUpdater = $leadDetail?->accountUpdatedBy?->name ?? $assignBase->accountUpdatedBy?->name ?? $assignBase->assignedUser?->name ?? '—';
+            $accountUpdatedAt = $leadDetail?->account_updated_at ?? $assignBase->account_updated_at;
+
             return response()->json([
                 'status' => true,
                 'data'   => [
-                    'assigned_to'      => $assignedToId ? (int)$assignedToId : null,
-                    'project_type'     => (string) $projectType,
-                    'cus_company_name' => (string) $companyName,
-                    'cus_mail'         => (string) $cusMail,
-                    'price'            => (string) $price,
-                    'gst'              => (string) $gst,
-                    'gst_no'           => (string) $gstNo,
+                    'assigned_to'        => $assignedToId ? (int)$assignedToId : null,
+                    'project_type'       => (string) $projectType,
+                    'cus_company_name'   => (string) $companyName,
+                    'cus_mail'           => (string) $cusMail,
+                    'price'              => (string) $price,
+                    'gst'                => (string) $gst,
+                    'gst_no'             => (string) $gstNo,
+                    'account_status'     => (string) $accountStatus,
+                    'account_remarks'    => (string) $accountRemarks,
+                    'account_updated_by' => (string) $accountUpdater,
+                    'account_updated_at' => $accountUpdatedAt ? Carbon::parse($accountUpdatedAt)->format('d/m/Y h:i A') : null,
                 ],
             ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * 2. Get Lead Account Status API (For Mobile App)
+     * GET /api/lead-account-status/{assign_base_id}?emp_id={emp_id}
+     * Also supports POST /api/lead-account-status
+     */
+    public function getLeadAccountStatus(Request $request, $assignBaseId = null)
+    {
+        try {
+            $id = $assignBaseId ?? $request->input('assign_base_id', $request->input('id'));
+            if (!$id) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'assign_base_id is required',
+                ], 422);
+            }
+
+            $assignBase = AssignBase::with(['leadDetail.accountUpdatedBy', 'accountUpdatedBy', 'assignedUser'])->find($id);
+            if (!$assignBase) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Lead not found',
+                ], 404);
+            }
+
+            $leadDetail = $assignBase->leadDetail;
+
+            $accountStatus = $leadDetail?->account_status
+                ?? $assignBase->account_status
+                ?? $assignBase->status
+                ?? 'NEW';
+
+            $accountRemarks = $leadDetail?->account_remarks
+                ?? $assignBase->account_remarks
+                ?? '';
+
+            $updater = $leadDetail?->accountUpdatedBy
+                ?? $assignBase->accountUpdatedBy
+                ?? $assignBase->assignedUser;
+
+            $updatedAt = $leadDetail?->account_updated_at
+                ?? $assignBase->account_updated_at
+                ?? $leadDetail?->updated_at
+                ?? $assignBase->updated_at;
+
+            return response()->json([
+                'status' => true,
+                'data'   => [
+                    'assign_base_id'  => (int) $assignBase->id,
+                    'account_status'  => (string) $accountStatus,
+                    'account_remarks' => (string) $accountRemarks,
+                    'updated_by'      => $updater?->name ?? '—',
+                    'updated_at'      => $updatedAt ? Carbon::parse($updatedAt)->format('d/m/Y h:i A') : null,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * 3. Update Account Status API (For Account Web / Mobile App)
+     * POST /api/update-account-status
+     */
+    public function updateAccountStatus(Request $request)
+    {
+        try {
+            $request->validate([
+                'assign_base_id'  => 'required|integer|exists:assign_bases,id',
+                'account_status'  => 'nullable|string|max:100',
+                'status'          => 'nullable|string|max:100',
+                'account_remarks' => 'nullable|string',
+                'emp_id'          => 'nullable|integer',
+            ]);
+
+            $id = $request->assign_base_id;
+            $assignBase = AssignBase::findOrFail($id);
+
+            // Supports account_status or status parameter
+            $statusInput = $request->input('account_status', $request->input('status', 'NEW'));
+            $status = strtoupper(trim((string) $statusInput));
+            if (empty($status)) {
+                $status = 'NEW';
+            }
+
+            $remarks = $request->input('account_remarks', $request->input('remarks', ''));
+            $updaterId = $request->input('emp_id', $request->input('assigned_to', Auth::id() ?? $assignBase->assigned_to));
+            $now = Carbon::now();
+
+            // 1. Update assign_bases table
+            $assignBase->account_status = $status;
+            $assignBase->status = $status;
+            $assignBase->account_remarks = $remarks;
+            if ($updaterId) {
+                $assignBase->account_updated_by = $updaterId;
+            }
+            $assignBase->account_updated_at = $now;
+            $assignBase->save();
+
+            // 2. Update lead_details table
+            $leadDetail = LeadDetail::updateOrCreate(
+                ['assign_base_id' => $assignBase->id],
+                [
+                    'account_status'     => $status,
+                    'account_remarks'    => $remarks,
+                    'account_updated_by' => $updaterId,
+                    'account_updated_at' => $now,
+                ]
+            );
+
+            // 3. Log into notifications history timeline
+            $updaterName = 'Account User';
+            if ($updaterId) {
+                $u = User::find($updaterId);
+                if ($u) $updaterName = $u->name;
+            }
+            Notification::create([
+                'assign_base_id'    => $assignBase->id,
+                'emp_id'            => $updaterId ?? $assignBase->emp_id,
+                'notification_date' => $now->toDateString(),
+                'notification_time' => $now->toTimeString(),
+                'remarks'           => 'Account status: ' . $status . ($remarks ? ' (' . $remarks . ')' : ''),
+                'status'            => $status,
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Account status updated successfully',
+                'data'    => [
+                    'assign_base_id'  => (int) $assignBase->id,
+                    'account_status'  => (string) $status,
+                    'account_remarks' => (string) $remarks,
+                    'updated_by'      => $updaterName,
+                    'updated_at'      => $now->format('d/m/Y h:i A'),
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => $e->validator->errors()->first(),
+                'errors'  => $e->validator->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,

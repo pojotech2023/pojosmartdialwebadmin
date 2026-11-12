@@ -21,6 +21,14 @@ class LeadDetail extends Model
         'price',
         'gst',
         'gst_no',
+        'account_status',
+        'account_remarks',
+        'account_updated_by',
+        'account_updated_at',
+    ];
+
+    protected $casts = [
+        'account_updated_at' => 'datetime',
     ];
 
     public function assignBase()
@@ -36,5 +44,10 @@ class LeadDetail extends Model
     public function assignedTo()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function accountUpdatedBy()
+    {
+        return $this->belongsTo(User::class, 'account_updated_by');
     }
 }

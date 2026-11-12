@@ -1046,9 +1046,43 @@ function renderLeadDetails(d) {
                         </div>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding: 6px 4px; font-size: 13px; color: #64748b; border-top: 1px solid #f1f5f9;">
+                    {{-- Account Status & Remarks Update Box --}}
+                    <div style="background: #f8fafc; border-radius: 16px; padding: 16px; margin-top: 14px; border: 1.5px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase;">
+                                <i class="fas fa-tasks" style="color: #6366f1; margin-right: 4px;"></i> Lead Account Status
+                            </span>
+                            <strong id="modal-status-badge-${d.id}" class="status-badge status-${escHtml((p.account_status || d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 3px 10px; font-size: 11px;">
+                                ${escHtml(p.account_status || d.status || 'NEW')}
+                            </strong>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                            <select id="modalStatusSelect-${d.id}" class="account-status-select status-${escHtml((p.account_status || d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}"
+                                    data-lead-id="${d.id}"
+                                    data-current="${escHtml(p.account_status || d.status || 'NEW')}"
+                                    onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
+                                    style="padding: 7px 14px; font-size: 12.5px; flex: 1;">
+                                <option value="NEW" ${String(p.account_status || d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
+                                <option value="IN PROGRESS" ${String(p.account_status || d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
+                                <option value="QUOTATION SHARED" ${String(p.account_status || d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
+                                <option value="CLIENT REPLIED" ${String(p.account_status || d.status).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="modalRemarks-${d.id}" value="${escHtml(p.account_remarks || '')}" placeholder="Add account note (e.g. quotation sent)..." style="flex: 1; padding: 7px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 12px; outline: none;">
+                            <button onclick="saveAccountRemarks(${d.id})" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border:none; padding:7px 14px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap;">
+                                Save Note
+                            </button>
+                        </div>
+                        ${d.account_status_details?.updated_by && d.account_status_details.updated_by !== '—' ? `
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
+                                Updated by <strong>${escHtml(d.account_status_details.updated_by)}</strong> on ${escHtml(d.account_status_details.updated_at || '—')}
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 4px 2px; font-size: 12.5px; color: #64748b;">
                         <span>Assigned Date: <strong style="color:#0f172a;">${escHtml(d.assign_date)}</strong></span>
-                        <span>Current Status: <strong id="modal-status-badge-${d.id}" class="status-badge status-${escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'))}" style="padding: 3px 10px; font-size: 11px;">${escHtml(d.status || 'NEW')}</strong></span>
                     </div>
                 </div>
 
@@ -1142,11 +1176,16 @@ function renderLeadDetails(d) {
 
 const UPDATE_LEAD_STATUS_ROUTE = "{{ route('dashboard.update-lead-status') }}";
 
-function changeAccountLeadStatus(leadId, newStatus, selectElement) {
+function changeAccountLeadStatus(leadId, newStatus, selectElement, remarks = null) {
     if (!leadId || !newStatus) return;
 
     const oldStatus = selectElement ? (selectElement.getAttribute('data-current') || '') : '';
     if (selectElement) selectElement.disabled = true;
+
+    if (remarks === null) {
+        const remarksInput = document.getElementById('modalRemarks-' + leadId);
+        remarks = remarksInput ? remarksInput.value.trim() : '';
+    }
 
     fetch(UPDATE_LEAD_STATUS_ROUTE, {
         method: 'POST',
@@ -1156,7 +1195,9 @@ function changeAccountLeadStatus(leadId, newStatus, selectElement) {
         },
         body: JSON.stringify({
             assign_base_id: leadId,
-            status: newStatus
+            status: newStatus,
+            account_status: newStatus,
+            account_remarks: remarks
         })
     })
     .then(r => r.json())
@@ -1196,6 +1237,15 @@ function changeAccountLeadStatus(leadId, newStatus, selectElement) {
         }
         showStatusToast('Update Failed', err.message || err, false);
     });
+}
+
+function saveAccountRemarks(leadId) {
+    const select = document.querySelector(`select[data-lead-id="${leadId}"]`);
+    const status = select ? select.value : 'NEW';
+    const remarksInput = document.getElementById('modalRemarks-' + leadId);
+    const remarks = remarksInput ? remarksInput.value.trim() : '';
+
+    changeAccountLeadStatus(leadId, status, select, remarks);
 }
 
 function showStatusToast(title, message, isSuccess = true) {

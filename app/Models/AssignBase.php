@@ -14,12 +14,17 @@ class AssignBase extends Model
         'product_id',
         'product_type',
         'status',
+        'account_status',
+        'account_remarks',
+        'account_updated_by',
+        'account_updated_at',
         'mobile',
         'assign_date',
     ];
 
     protected $casts = [
-        'assign_date' => 'date',
+        'assign_date'        => 'date',
+        'account_updated_at' => 'datetime',
     ];
 
     public function employee()
@@ -35,6 +40,11 @@ class AssignBase extends Model
     public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function accountUpdatedBy()
+    {
+        return $this->belongsTo(User::class, 'account_updated_by');
     }
 
     public function leadDetail()

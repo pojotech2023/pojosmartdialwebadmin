@@ -404,6 +404,14 @@ class AuthController extends Controller
                         'price_raw'        => $leadDetail?->price ?? '',
                         'gst'              => $leadDetail?->gst ?? 'N',
                         'gst_no'           => $leadDetail?->gst_no ?? '',
+                        'account_status'   => $leadDetail?->account_status ?? $lead->account_status ?? $lead->status ?? 'NEW',
+                        'account_remarks'  => $leadDetail?->account_remarks ?? $lead->account_remarks ?? '',
+                    ],
+                    'account_status_details' => [
+                        'account_status'  => $leadDetail?->account_status ?? $lead->account_status ?? $lead->status ?? 'NEW',
+                        'account_remarks' => $leadDetail?->account_remarks ?? $lead->account_remarks ?? '',
+                        'updated_by'      => $lead->accountUpdatedBy?->name ?? $leadDetail?->accountUpdatedBy?->name ?? $lead->assignedUser?->name ?? '—',
+                        'updated_at'      => ($lead->account_updated_at ?? $leadDetail?->account_updated_at) ? Carbon::parse($lead->account_updated_at ?? $leadDetail->account_updated_at)->format('d/m/Y h:i A') : null,
                     ],
                     'appointment_details' => $latestAppointment ? [
                         'status'           => $latestAppointment->status,
@@ -450,17 +458,42 @@ class AuthController extends Controller
             }
 
             $status = strtoupper(trim($request->status));
+            $remarks = $request->input('account_remarks', $request->input('remarks', ''));
+            $now = Carbon::now();
+
             $lead->status = $status;
+            $lead->account_status = $status;
+            if ($remarks !== '') {
+                $lead->account_remarks = $remarks;
+            }
+            if ($currentUser) {
+                $lead->account_updated_by = $currentUser->id;
+            }
+            $lead->account_updated_at = $now;
             $lead->save();
+
+            // Sync with lead_details table
+            $leadDetailData = [
+                'account_status'     => $status,
+                'account_updated_by' => $currentUser?->id,
+                'account_updated_at' => $now,
+            ];
+            if ($remarks !== '') {
+                $leadDetailData['account_remarks'] = $remarks;
+            }
+            LeadDetail::updateOrCreate(
+                ['assign_base_id' => $lead->id],
+                $leadDetailData
+            );
 
             // Track in notifications remarks
             if ($currentUser) {
                 Notification::create([
                     'assign_base_id'    => $lead->id,
                     'emp_id'            => $currentUser->id,
-                    'notification_date' => Carbon::now()->toDateString(),
-                    'notification_time' => Carbon::now()->toTimeString(),
-                    'remarks'           => 'Status changed to ' . $status . ' by ' . $currentUser->name,
+                    'notification_date' => $now->toDateString(),
+                    'notification_time' => $now->toTimeString(),
+                    'remarks'           => 'Account status set to ' . $status . ($remarks ? ' (' . $remarks . ')' : '') . ' by ' . $currentUser->name,
                     'status'            => $status,
                 ]);
             }
@@ -469,8 +502,13 @@ class AuthController extends Controller
                 'status'  => true,
                 'message' => 'Status updated to ' . $status,
                 'data'    => [
-                    'id'     => $lead->id,
-                    'status' => $lead->status,
+                    'id'              => $lead->id,
+                    'assign_base_id'  => $lead->id,
+                    'status'          => $lead->status,
+                    'account_status'  => $lead->account_status,
+                    'account_remarks' => $lead->account_remarks,
+                    'updated_by'      => $currentUser?->name ?? 'Account User',
+                    'updated_at'      => $now->format('d/m/Y h:i A'),
                 ],
             ]);
         } catch (\Exception $e) {
