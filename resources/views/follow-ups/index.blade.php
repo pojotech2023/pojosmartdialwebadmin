@@ -52,13 +52,14 @@
                     <thead>
                         <tr>
                             <th scope="col">Reminder date</th>
+                            <th scope="col">Reminder time</th>
                             <th scope="col">Customer</th>
                             <th scope="col">Company</th>
                             <th scope="col">Mobile</th>
                             <th scope="col">Telecaller</th>
+                            <th scope="col">Product type</th>
                             <th scope="col">Notification status</th>
                             <th scope="col">Remarks</th>
-                            <th scope="col">Reminder time</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -72,6 +73,9 @@
                                 <td class="follow-up-date">
                                     {{ $notification->notification_date?->format('d M Y') ?? '—' }}
                                 </td>
+                                <td class="follow-up-time">
+                                    {{ $notification->notification_time ? \Illuminate\Support\Carbon::parse($notification->notification_time)->format('h:i A') : '—' }}
+                                </td>
                                 <td class="follow-up-customer">{{ $lead->customer_name ?? '—' }}</td>
                                 <td>{{ $lead->company_name ?? '—' }}</td>
                                 <td>
@@ -82,15 +86,13 @@
                                     @endif
                                 </td>
                                 <td>{{ $notification->employee->name ?? '—' }}</td>
+                                <td>{{ $lead?->product?->name ?? $lead?->product_type ?? '—' }}</td>
                                 <td>
                                     <span class="notification-status-pill status-{{ $statusSlug }}">
                                         {{ $status !== '' ? $status : 'Not selected' }}
                                     </span>
                                 </td>
                                 <td class="follow-up-remarks">{{ $notification->remarks ?: '—' }}</td>
-                                <td class="follow-up-time">
-                                    {{ $notification->notification_time ? \Illuminate\Support\Carbon::parse($notification->notification_time)->format('h:i A') : '—' }}
-                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -200,7 +202,7 @@
         white-space: nowrap;
     }
     .follow-up-table-wrap { overflow-x: auto; }
-    .follow-up-table { width: 100%; min-width: 1060px; border-collapse: separate; border-spacing: 0; }
+    .follow-up-table { width: 100%; min-width: 1260px; border-collapse: separate; border-spacing: 0; }
     .follow-up-table th {
         padding: 12px 14px;
         background: #f8fafc;

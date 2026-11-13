@@ -37,7 +37,7 @@
 
     {{-- Role --}}
     <label class="form-label">Role</label>
-    <select name="role" class="cal-select" style="width:100%;margin-bottom:14px;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#fff;" required>
+    <select id="employee-role" name="role" class="cal-select" style="width:100%;margin-bottom:14px;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#fff;" required>
         <option value="Telecaller" {{ old('role', $employee->role ?? 'Telecaller') === 'Telecaller' ? 'selected' : '' }}>
             Telecaller
         </option>
@@ -49,16 +49,28 @@
         @endif
     </select>
 
+    <div id="monthly-target-field">
+        <label class="form-label" for="monthly-target">Monthly Target (₹)</label>
+        <input type="number"
+               id="monthly-target"
+               name="monthly_target"
+               value="{{ old('monthly_target', $employee->monthly_target) }}"
+               min="0"
+               step="0.01"
+               placeholder="Enter monthly target">
+    </div>
+
     {{-- Mobile --}}
     <label class="form-label">Mobile Number</label>
     <input type="text" name="mobile"
            value="{{ old('mobile', $employee->mobile) }}" required>
 
     {{-- Email (optional) --}}
-    <label class="form-label">Email ID (optional)</label>
+    <label class="form-label">Email ID</label>
     <input type="email" name="email"
            value="{{ old('email', $employee->email) }}"
-           placeholder="Enter email ID (optional for web login)">
+           placeholder="Enter email ID"
+           required>
 
     {{-- Password (optional) --}}
     <label class="form-label">New Password (optional)</label>
@@ -82,5 +94,20 @@
 </form>
 
 </div>
+
+<script>
+    const employeeRole = document.getElementById('employee-role');
+    const monthlyTargetField = document.getElementById('monthly-target-field');
+    const monthlyTargetInput = document.getElementById('monthly-target');
+
+    function updateMonthlyTargetField() {
+        const isTelecaller = employeeRole.value === 'Telecaller';
+        monthlyTargetField.hidden = !isTelecaller;
+        monthlyTargetInput.required = isTelecaller;
+    }
+
+    employeeRole.addEventListener('change', updateMonthlyTargetField);
+    updateMonthlyTargetField();
+</script>
 
 @endsection

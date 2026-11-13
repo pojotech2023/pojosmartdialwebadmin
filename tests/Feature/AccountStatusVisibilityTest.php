@@ -45,6 +45,7 @@ class AccountStatusVisibilityTest extends TestCase
             'assigned_to' => $account->id,
             'customer_name' => 'Follow Up Customer',
             'company_name' => 'Follow Up Company',
+            'product_type' => 'Website',
             'status' => 'CONFIRMED',
             'account_status' => 'NEW',
             'mobile' => '9876543210',
@@ -124,6 +125,18 @@ class AccountStatusVisibilityTest extends TestCase
             ->assertOk()
             ->assertSee('All Follow Up List')
             ->assertSee('Follow Up Customer')
+            ->assertSee('Website')
+            ->assertSeeInOrder([
+                '<th scope="col">Reminder date</th>',
+                '<th scope="col">Reminder time</th>',
+                '<th scope="col">Customer</th>',
+                '<th scope="col">Company</th>',
+                '<th scope="col">Mobile</th>',
+                '<th scope="col">Telecaller</th>',
+                '<th scope="col">Product type</th>',
+                '<th scope="col">Notification status</th>',
+                '<th scope="col">Remarks</th>',
+            ], false)
             ->assertSee('Other Customer')
             ->assertDontSee('Status changed to IN PROGRESS by Suresh Kumar')
             ->assertDontSee('Should be excluded');
@@ -278,7 +291,7 @@ class AccountStatusVisibilityTest extends TestCase
         $this->actingAs($account)
             ->postJson(route('dashboard.update-lead-status'), [
                 'assign_base_id' => $lead->id,
-                'account_status' => 'CONFIRMED',
+                'account_status' => 'NOT A VALID STATUS',
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('account_status');
@@ -286,12 +299,12 @@ class AccountStatusVisibilityTest extends TestCase
         $this->actingAs($account)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertDontSee('<option value="CONFIRMED"', false);
+            ->assertSee('<option value="CONFIRMED"', false);
 
         $this->actingAs($account)
             ->get(route('accounts.index'))
             ->assertOk()
-            ->assertDontSee('<option value="CONFIRMED"', false);
+            ->assertSee('<option value="CONFIRMED"', false);
 
         $this->actingAs($admin)
             ->postJson(route('dashboard.update-lead-status'), [

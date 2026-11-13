@@ -171,7 +171,7 @@ class FollowUpController extends Controller
 
     private function notificationsQuery(Request $request, User $currentUser): Builder
     {
-        $query = Notification::with(['employee', 'assignBase.assignedUser'])
+        $query = Notification::with(['employee', 'assignBase.assignedUser', 'assignBase.product'])
             ->whereHas('assignBase')
             ->whereHas('employee', function ($query) {
                 $query->where(function ($roleQuery) {

@@ -687,34 +687,136 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-{{-- EMPLOYEE SUMMARY CARDS --}}
-@if(isset($cardData) && $cardData->count() > 0)
+{{-- TELECALLER SUMMARY CARDS --}}
+@php
+    $statGradients = [
+        'linear-gradient(135deg,#6366f1,#4f46e5)',
+        'linear-gradient(135deg,#34d399,#10b981)',
+        'linear-gradient(135deg,#fbbf24,#f59e0b)',
+        'linear-gradient(135deg,#38bdf8,#0ea5e9)',
+        'linear-gradient(135deg,#f472b6,#ec4899)',
+        'linear-gradient(135deg,#a78bfa,#8b5cf6)',
+    ];
+@endphp
+@if($isAdmin && $monthlyTargetCards->isNotEmpty())
 
-<div class="stat-grid">
-    @php
-        $statGradients = [
-            'linear-gradient(135deg,#6366f1,#4f46e5)',
-            'linear-gradient(135deg,#34d399,#10b981)',
-            'linear-gradient(135deg,#fbbf24,#f59e0b)',
-            'linear-gradient(135deg,#38bdf8,#0ea5e9)',
-            'linear-gradient(135deg,#f472b6,#ec4899)',
-            'linear-gradient(135deg,#a78bfa,#8b5cf6)',
-        ];
-    @endphp
-    @foreach($cardData as $index => $card)
-        <div class="stat-card">
-            <div class="stat-icon" style="background:{{ $statGradients[$index % count($statGradients)] }};">
-                <i class="fas fa-user-tie"></i>
-            </div>
+<section class="monthly-target-section" aria-labelledby="monthly-target-title">
+    <header class="monthly-target-toolbar">
+        <div class="monthly-target-title-group">
+            <span class="monthly-target-title-icon" aria-hidden="true"><i class="fas fa-chart-line"></i></span>
             <div>
-                <div class="stat-value">{{ $card->total }}</div>
-                <div class="stat-label">{{ $card->name }} — Assigned Bases</div>
+                <h2 id="monthly-target-title">Monthly Target History</h2>
+                <p>Review telecaller targets and confirmed value archived each month.</p>
             </div>
         </div>
-    @endforeach
-</div>
+        <form method="GET" action="{{ route('dashboard') }}" class="monthly-target-month-form">
+            @foreach(['employee_id', 'product_id', 'status', 'account_status', 'from_date', 'to_date'] as $filter)
+                @if(request()->filled($filter))
+                    <input type="hidden" name="{{ $filter }}" value="{{ request($filter) }}">
+                @endif
+            @endforeach
+            <label for="target-month">Archive month</label>
+            <div class="monthly-target-month-control">
+                <i class="far fa-calendar-alt" aria-hidden="true"></i>
+                <input id="target-month" type="month" name="target_month" value="{{ $selectedTargetMonth }}" max="{{ now()->format('Y-m') }}" required>
+            </div>
+            <button type="submit" class="btn-upload"><i class="fas fa-arrow-right" aria-hidden="true"></i> View</button>
+        </form>
+    </header>
 
+    <div class="monthly-target-grid">
+        @foreach($monthlyTargetCards as $index => $card)
+            <article class="monthly-target-employee" data-telecaller-card="{{ $card->name }}">
+                <div class="monthly-target-employee-header">
+                    <span class="monthly-target-employee-icon" style="--employee-accent: {{ $statGradients[$index % count($statGradients)] }};">
+                        <i class="fas fa-user-tie" aria-hidden="true"></i>
+                    </span>
+                    <div class="monthly-target-employee-info">
+                        <h3>{{ $card->name }}</h3>
+                        <span>{{ number_format($card->total) }} assigned {{ \Illuminate\Support\Str::plural('customer', $card->total) }}</span>
+                    </div>
+                </div>
+                <div class="monthly-target-metrics">
+                    <div class="monthly-target-metric">
+                        <span>Monthly target</span>
+                        <strong>₹{{ number_format($card->target, 2) }}</strong>
+                    </div>
+                    <div class="monthly-target-metric monthly-target-metric-archived">
+                        <span>Archived</span>
+                        <strong>₹{{ number_format($card->archived, 2) }}</strong>
+                    </div>
+                    <div class="monthly-target-metric monthly-target-metric-balance">
+                        <span>Balance to achieve</span>
+                        <strong>₹{{ number_format($card->remaining, 2) }}</strong>
+                    </div>
+                </div>
+            </article>
+        @endforeach
+    </div>
+    <footer class="monthly-target-footer">
+        Showing archived values for <strong>{{ \Illuminate\Support\Carbon::createFromFormat('!Y-m', $selectedTargetMonth)->format('F Y') }}</strong>
+    </footer>
+</section>
+@elseif(isset($cardData) && $cardData->count() > 0)
+    <div class="stat-grid">
+        @foreach($cardData as $index => $card)
+            <div class="stat-card">
+                <div class="stat-icon" style="background:{{ $statGradients[$index % count($statGradients)] }};">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ $card->total }}</div>
+                    <div class="stat-label">{{ $card->name }} — Assigned Bases</div>
+                </div>
+            </div>
+        @endforeach
+    </div>
 @endif
+
+<style>
+    .monthly-target-section { margin: 0 0 18px; padding: 18px; border: 1px solid #e5eaf2; border-radius: 16px; background: #fff; box-shadow: 0 6px 20px rgba(15, 23, 42, .045); }
+    .monthly-target-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 2px 16px; border-bottom: 1px solid #edf0f5; }
+    .monthly-target-title-group { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .monthly-target-title-icon { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: #eef2ff; color: #4f46e5; font-size: 16px; }
+    .monthly-target-toolbar h2 { margin: 0; color: #172033; font-size: 16px; font-weight: 750; }
+    .monthly-target-toolbar p { margin: 4px 0 0; color: #788397; font-size: 12px; }
+    .monthly-target-month-form { display: flex; align-items: center; gap: 9px; padding: 8px; border: 1px solid #e8ecf3; border-radius: 12px; background: #f8fafc; }
+    .monthly-target-month-form label { padding-left: 5px; color: #526078; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .monthly-target-month-control { position: relative; }
+    .monthly-target-month-control > i { position: absolute; top: 50%; left: 10px; transform: translateY(-50%); color: #818ba0; font-size: 12px; pointer-events: none; }
+    .monthly-target-month-control input { width: 150px; min-height: 36px; padding: 0 9px 0 30px; border: 1px solid #dfe5ee; border-radius: 8px; background: #fff; color: #253149; font-size: 12px; font-weight: 600; }
+    .monthly-target-month-control input:focus { border-color: #818cf8; outline: 3px solid rgba(99, 102, 241, .12); }
+    .monthly-target-month-form .btn-upload { display: inline-flex; min-height: 36px; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 8px; }
+    .monthly-target-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; padding-top: 16px; }
+    .monthly-target-employee { min-width: 0; padding: 16px; border: 1px solid #e9edf4; border-radius: 13px; background: linear-gradient(145deg, #fff 0%, #fbfcff 100%); transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+    .monthly-target-employee:hover { transform: translateY(-1px); border-color: #d7ddf0; box-shadow: 0 7px 18px rgba(15, 23, 42, .055); }
+    .monthly-target-employee-header { display: flex; align-items: center; gap: 11px; }
+    .monthly-target-employee-icon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: var(--employee-accent); color: #fff; font-size: 16px; }
+    .monthly-target-employee-info { min-width: 0; }
+    .monthly-target-employee-info h3 { overflow: hidden; margin: 0; color: #172033; font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+    .monthly-target-employee-info span { display: block; margin-top: 4px; color: #788397; font-size: 11px; }
+    .monthly-target-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 15px; padding-top: 13px; border-top: 1px solid #edf0f5; }
+    .monthly-target-metric { min-width: 0; }
+    .monthly-target-metric span { display: block; min-height: 15px; margin-bottom: 5px; color: #788397; font-size: 10px; line-height: 1.35; }
+    .monthly-target-metric strong { color: #253149; font-size: 13px; font-weight: 750; white-space: nowrap; }
+    .monthly-target-metric-archived strong { color: #059669; }
+    .monthly-target-metric-balance strong { color: #4f46e5; }
+    .monthly-target-footer { margin-top: 12px; color: #788397; font-size: 11px; text-align: right; }
+    .monthly-target-footer strong { color: #526078; font-weight: 700; }
+    @media (max-width: 480px) {
+        .monthly-target-section { padding: 14px; }
+        .monthly-target-toolbar { align-items: stretch; flex-direction: column; gap: 14px; }
+        .monthly-target-month-form { width: 100%; flex-wrap: wrap; }
+        .monthly-target-month-control { flex: 1; }
+        .monthly-target-month-control input { width: 100%; }
+        .monthly-target-month-form .btn-upload { justify-content: center; }
+        .monthly-target-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+        .monthly-target-employee { padding: 14px; }
+        .monthly-target-metrics { gap: 5px; }
+        .monthly-target-metric span { font-size: 9px; }
+        .monthly-target-metric strong { font-size: 11px; }
+    }
+</style>
 
 {{-- FILTER FORM --}}
 <div class="card-box">
@@ -747,6 +849,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <option value="IN PROGRESS" {{ request('account_status') == 'IN PROGRESS' ? 'selected' : '' }}>IN PROGRESS</option>
                     <option value="QUOTATION SHARED" {{ request('account_status') == 'QUOTATION SHARED' ? 'selected' : '' }}>QUOTATION SHARED</option>
                     <option value="CLIENT REPLIED" {{ request('account_status') == 'CLIENT REPLIED' ? 'selected' : '' }}>CLIENT REPLIED</option>
+                    <option value="CONFIRMED" {{ request('account_status') == 'CONFIRMED' ? 'selected' : '' }}>CONFIRMED</option>
                 </select>
                 @else
                 <label class="form-label">Telecaller Status</label>
@@ -1038,6 +1141,7 @@ function renderLeadDetails(d) {
                             <option value="IN PROGRESS" ${String(displayStatus).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
                             <option value="QUOTATION SHARED" ${String(displayStatus).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
                             <option value="CLIENT REPLIED" ${String(displayStatus).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
+                            <option value="CONFIRMED" ${String(displayStatus).toUpperCase() === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
                         </select>
                     ` : `
                         <span id="modal-status-badge-${d.id}" class="status-badge status-${statusSlug}" style="padding: 7px 13px; font-size: 12px;">

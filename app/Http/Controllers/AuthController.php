@@ -79,6 +79,14 @@ class AuthController extends Controller
         $currentUser = Auth::user();
         $isAdmin = $currentUser ? $currentUser->isAdmin() : false;
         $isAccount = $currentUser ? $currentUser->isAccount() : false;
+        $selectedTargetMonth = now()->format('Y-m');
+
+        if ($isAdmin) {
+            $validated = $request->validate([
+                'target_month' => 'nullable|date_format:Y-m',
+            ]);
+            $selectedTargetMonth = $validated['target_month'] ?? $selectedTargetMonth;
+        }
 
         // Employee dropdown
         if ($isAdmin) {
@@ -157,11 +165,71 @@ class AuthController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $monthlyTargetCards = collect();
+        if ($isAdmin) {
+            $telecallers = User::leftJoin('assign_bases', 'users.id', '=', 'assign_bases.emp_id')
+                ->whereRaw("LOWER(TRIM(COALESCE(users.role, ''))) = ?", ['telecaller'])
+                ->select(
+                    'users.id',
+                    'users.name',
+                    'users.monthly_target',
+                    \DB::raw('COUNT(assign_bases.id) as assigned_total')
+                )
+                ->groupBy('users.id', 'users.name', 'users.monthly_target')
+                ->orderBy('name')
+                ->get();
+            $archivedAmounts = $telecallers->mapWithKeys(fn (User $telecaller) => [$telecaller->id => 0]);
+
+            if ($telecallers->isNotEmpty()) {
+                $monthStart = Carbon::createFromFormat('!Y-m', $selectedTargetMonth)->startOfMonth();
+                $nextMonthStart = $monthStart->copy()->addMonth();
+                $confirmedLeads = AssignBase::query()
+                    ->leftJoin('lead_details', 'lead_details.assign_base_id', '=', 'assign_bases.id')
+                    ->whereIn('assign_bases.emp_id', $telecallers->pluck('id'))
+                    ->where(function ($query) use ($monthStart, $nextMonthStart) {
+                        $query->where(function ($baseQuery) use ($monthStart, $nextMonthStart) {
+                            $baseQuery->whereRaw("UPPER(TRIM(COALESCE(assign_bases.account_status, ''))) = ?", ['CONFIRMED'])
+                                ->where('assign_bases.account_updated_at', '>=', $monthStart)
+                                ->where('assign_bases.account_updated_at', '<', $nextMonthStart);
+                        })->orWhere(function ($detailQuery) use ($monthStart, $nextMonthStart) {
+                            $detailQuery->whereRaw("UPPER(TRIM(COALESCE(lead_details.account_status, ''))) = ?", ['CONFIRMED'])
+                                ->where('lead_details.account_updated_at', '>=', $monthStart)
+                                ->where('lead_details.account_updated_at', '<', $nextMonthStart);
+                        });
+                    })
+                    ->get(['assign_bases.emp_id', 'lead_details.price']);
+
+                foreach ($confirmedLeads as $lead) {
+                    $numericPrice = preg_replace('/[^0-9.-]/', '', (string) $lead->price);
+                    $priceInCents = is_numeric($numericPrice)
+                        ? (int) round((float) $numericPrice * 100)
+                        : 0;
+                    $archivedAmounts[$lead->emp_id] = ($archivedAmounts[$lead->emp_id] ?? 0) + $priceInCents;
+                }
+            }
+
+            $monthlyTargetCards = $telecallers->map(function (User $telecaller) use ($archivedAmounts) {
+                $target = (float) ($telecaller->monthly_target ?? 0);
+                $archived = ($archivedAmounts[$telecaller->id] ?? 0) / 100;
+
+                return (object) [
+                    'id' => $telecaller->id,
+                    'name' => $telecaller->name,
+                    'total' => (int) $telecaller->assigned_total,
+                    'target' => $target,
+                    'archived' => $archived,
+                    'remaining' => max(0, $target - $archived),
+                ];
+            });
+        }
+
         return view('dashboard', compact(
             'employees',
             'products',
             'paginatedRows',
             'cardData',
+            'monthlyTargetCards',
+            'selectedTargetMonth',
             'isAdmin',
             'isAccount'
         ));
@@ -469,7 +537,7 @@ class AuthController extends Controller
 
             $request->validate([
                 'assign_base_id' => 'required|integer|exists:assign_bases,id',
-                'account_status' => 'required|string|in:NEW,IN PROGRESS,QUOTATION SHARED,CLIENT REPLIED',
+                'account_status' => 'required|string|in:NEW,IN PROGRESS,QUOTATION SHARED,CLIENT REPLIED,CONFIRMED',
                 'account_remarks' => 'nullable|string|max:5000',
             ]);
 

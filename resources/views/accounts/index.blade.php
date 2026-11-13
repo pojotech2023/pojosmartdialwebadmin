@@ -207,6 +207,7 @@
                 <option value="IN PROGRESS"      {{ request('account_status') == 'IN PROGRESS'      ? 'selected' : '' }}>IN PROGRESS</option>
                 <option value="QUOTATION SHARED" {{ request('account_status') == 'QUOTATION SHARED' ? 'selected' : '' }}>QUOTATION SHARED</option>
                 <option value="CLIENT REPLIED"   {{ request('account_status') == 'CLIENT REPLIED'   ? 'selected' : '' }}>CLIENT REPLIED</option>
+                <option value="CONFIRMED"        {{ request('account_status') == 'CONFIRMED'        ? 'selected' : '' }}>CONFIRMED</option>
             </select>
         </div>
 
@@ -389,6 +390,7 @@ function renderAccLeadDetails(d) {
                         <option value="IN PROGRESS" ${acStatus.toUpperCase()==='IN PROGRESS'?'selected':''}>IN PROGRESS</option>
                         <option value="QUOTATION SHARED" ${acStatus.toUpperCase()==='QUOTATION SHARED'?'selected':''}>QUOTATION SHARED</option>
                         <option value="CLIENT REPLIED" ${acStatus.toUpperCase()==='CLIENT REPLIED'?'selected':''}>CLIENT REPLIED</option>
+                        <option value="CONFIRMED" ${acStatus.toUpperCase()==='CONFIRMED'?'selected':''}>CONFIRMED</option>
                     </select>
                     ` : `
                     <span id="acc-modal-badge-${d.id}" class="acc-status-badge ${acStatusSlug}">${escHtml(acStatus)}</span>

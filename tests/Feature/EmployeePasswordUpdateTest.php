@@ -33,6 +33,7 @@ class EmployeePasswordUpdateTest extends TestCase
                 'mobile' => $employee->mobile,
                 'email' => $employee->email,
                 'role' => $employee->role,
+                'monthly_target' => '5000',
                 'password' => 'new-password-123',
                 'password_confirmation' => 'new-password-123',
             ])
@@ -106,6 +107,7 @@ class EmployeePasswordUpdateTest extends TestCase
                 'mobile' => $employee->mobile,
                 'email' => $employee->email,
                 'role' => $employee->role,
+                'monthly_target' => '5000',
                 'password' => 'new-password-123',
                 'password_confirmation' => 'different-password',
             ])

@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\FollowUpController;
 
 Route::post('/login', [AuthApiController::class, 'login']);
+Route::get('/telecaller/monthly-target', [AuthApiController::class, 'monthlyTarget']);
 Route::get('/follow-ups', [FollowUpController::class, 'apiData']);
 Route::match(['get', 'post'], '/assign-base', [AuthApiController::class, 'assignBaseByEmployee']);
 Route::match(['get', 'post'], '/assign-base-by-employee', [AuthApiController::class, 'assignBaseByEmployee']);
@@ -80,5 +81,4 @@ Route::post('/update-status', [AuthApiController::class, 'updateLeadStatus']);
 // F. Lead Account Status (for Mobile App & Web)
 Route::match(['get', 'post'], '/lead-account-status/{assignBaseId?}', [AuthApiController::class, 'getLeadAccountStatus']);
 Route::post('/update-account-status', [AuthApiController::class, 'updateAccountStatus']);
-
 

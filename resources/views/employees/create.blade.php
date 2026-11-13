@@ -64,7 +64,7 @@
             <tr>
                 <td class="label">Role</td>
                 <td>
-                    <select name="role" class="cal-select" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#fff;" required>
+                    <select id="employee-role" name="role" class="cal-select" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#fff;" required>
                         <option value="Telecaller" {{ old('role', 'Telecaller') === 'Telecaller' ? 'selected' : '' }}>
                             Telecaller
                         </option>
@@ -72,6 +72,19 @@
                             Account
                         </option>
                     </select>
+                </td>
+            </tr>
+
+            <tr id="monthly-target-row">
+                <td class="label">Monthly Target (₹)</td>
+                <td>
+                    <input type="number"
+                           id="monthly-target"
+                           name="monthly_target"
+                           value="{{ old('monthly_target') }}"
+                           min="0"
+                           step="0.01"
+                           placeholder="Enter monthly target">
                 </td>
             </tr>
 
@@ -87,12 +100,13 @@
             </tr>
 
             <tr>
-                <td class="label">Email ID (Optional)</td>
+                <td class="label">Email ID</td>
                 <td>
                     <input type="email"
                            name="email"
                            value="{{ old('email') }}"
-                           placeholder="Enter email ID (optional for web login)">
+                           placeholder="Enter email ID"
+                           required>
                 </td>
             </tr>
 
@@ -141,6 +155,19 @@
 </div>
 
 <script>
+    const employeeRole = document.getElementById('employee-role');
+    const monthlyTargetRow = document.getElementById('monthly-target-row');
+    const monthlyTargetInput = document.getElementById('monthly-target');
+
+    function updateMonthlyTargetField() {
+        const isTelecaller = employeeRole.value === 'Telecaller';
+        monthlyTargetRow.hidden = !isTelecaller;
+        monthlyTargetInput.required = isTelecaller;
+    }
+
+    employeeRole.addEventListener('change', updateMonthlyTargetField);
+    updateMonthlyTargetField();
+
     function togglePassword(inputId, eyeId) {
         const input = document.getElementById(inputId);
         const eye = document.getElementById(eyeId);

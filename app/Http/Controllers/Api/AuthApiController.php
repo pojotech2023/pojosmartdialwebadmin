@@ -44,6 +44,8 @@ class AuthApiController extends Controller
             ], 401);
         }
 
+        $isTelecaller = $user->isTelecaller() && !$user->isAdmin() && !$user->isAccount();
+
         // Success response
         return response()->json([
             'status'           => true,
@@ -67,8 +69,111 @@ class AuthApiController extends Controller
                 'mobile' => $user->mobile,
                 'role'   => $user->role ?? 'Telecaller',
                 'joined' => $user->created_at->format('d-m-Y'),
+                'monthly_target' => $isTelecaller
+                    ? $this->monthlyTargetSummary($user)
+                    : null,
             ]
         ]);
+    }
+
+    public function monthlyTarget(Request $request): JsonResponse
+    {
+        $token = $request->bearerToken();
+        if (!$token) {
+            return response()->json([
+                'status' => false,
+                'message' => 'A Telecaller login token is required.',
+            ], 401);
+        }
+
+        try {
+            $claims = explode('|', Crypt::decryptString($token));
+        } catch (DecryptException $exception) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The Telecaller login token is invalid or expired.',
+            ], 401);
+        }
+
+        if (
+            count($claims) !== 3
+            || $claims[0] !== 'mobile-follow-ups'
+            || !ctype_digit($claims[1])
+            || !ctype_digit($claims[2])
+            || (int) $claims[2] <= now()->timestamp
+        ) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The Telecaller login token is invalid or expired.',
+            ], 401);
+        }
+
+        $user = User::find((int) $claims[1]);
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The Telecaller login token is invalid or expired.',
+            ], 401);
+        }
+
+        if (!$user->isTelecaller() || $user->isAdmin() || $user->isAccount()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Only Telecaller users can access their monthly target.',
+            ], 403);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $this->monthlyTargetSummary($user),
+        ]);
+    }
+
+    private function monthlyTargetSummary(User $user): array
+    {
+        $monthStart = Carbon::now()->startOfMonth();
+        $nextMonthStart = $monthStart->copy()->addMonth();
+        $archivedCents = 0;
+
+        $confirmedLeads = AssignBase::query()
+            ->leftJoin('lead_details', 'lead_details.assign_base_id', '=', 'assign_bases.id')
+            ->where('assign_bases.emp_id', $user->id)
+            ->where(function ($query) use ($monthStart, $nextMonthStart) {
+                $query->where(function ($baseQuery) use ($monthStart, $nextMonthStart) {
+                    $baseQuery->whereRaw("UPPER(TRIM(COALESCE(assign_bases.account_status, ''))) = ?", ['CONFIRMED'])
+                        ->where('assign_bases.account_updated_at', '>=', $monthStart)
+                        ->where('assign_bases.account_updated_at', '<', $nextMonthStart);
+                })->orWhere(function ($detailQuery) use ($monthStart, $nextMonthStart) {
+                    $detailQuery->whereRaw("UPPER(TRIM(COALESCE(lead_details.account_status, ''))) = ?", ['CONFIRMED'])
+                        ->where('lead_details.account_updated_at', '>=', $monthStart)
+                        ->where('lead_details.account_updated_at', '<', $nextMonthStart);
+                });
+            })
+            ->get(['lead_details.price']);
+
+        foreach ($confirmedLeads as $lead) {
+            $numericPrice = preg_replace('/[^0-9.-]/', '', (string) $lead->price);
+            if (is_numeric($numericPrice)) {
+                $archivedCents += (int) round((float) $numericPrice * 100);
+            }
+        }
+
+        $targetCents = (int) round((float) ($user->monthly_target ?? 0) * 100);
+
+        return [
+            'emp_id' => $user->id,
+            'employee_name' => $user->name,
+            'month' => $monthStart->format('Y-m'),
+            'month_label' => $monthStart->format('F Y'),
+            'assigned_customer_count' => AssignBase::where('emp_id', $user->id)
+                ->where('assign_date', '>=', $monthStart->toDateString())
+                ->where('assign_date', '<', $nextMonthStart->toDateString())
+                ->count(),
+            'monthly_target' => $targetCents / 100,
+            'archived_amount' => $archivedCents / 100,
+            'balance_to_achieve' => max(0, $targetCents - $archivedCents) / 100,
+            'currency' => 'INR',
+        ];
     }
     public function saveLoanApplication(Request $request)
     {
@@ -2033,6 +2138,7 @@ class AuthApiController extends Controller
                 'IN PROGRESS',
                 'QUOTATION SHARED',
                 'CLIENT REPLIED',
+                'CONFIRMED',
             ];
 
             $items = [
@@ -2040,6 +2146,7 @@ class AuthApiController extends Controller
                 ['id' => 2, 'name' => 'IN PROGRESS', 'slug' => 'in-progress'],
                 ['id' => 3, 'name' => 'QUOTATION SHARED', 'slug' => 'quotation-shared'],
                 ['id' => 4, 'name' => 'CLIENT REPLIED', 'slug' => 'client-replied'],
+                ['id' => 5, 'name' => 'CONFIRMED', 'slug' => 'confirmed'],
             ];
 
             $isObjects = $request->input('format') === 'objects' || $request->boolean('objects');
@@ -2081,7 +2188,7 @@ class AuthApiController extends Controller
             }
 
             if ($assignedUser->isAccount()) {
-                $assignBase->status = 'CONFIRMED';
+                $assignBase->account_status = 'NEW';
             }
             $assignBase->save();
 
@@ -2090,6 +2197,9 @@ class AuthApiController extends Controller
                 'emp_id'      => $assignBase->emp_id,
                 'assigned_to' => $request->assigned_to,
             ];
+            if ($assignedUser->isAccount()) {
+                $leadDetailData['account_status'] = 'NEW';
+            }
             $leadDetail = LeadDetail::updateOrCreate(
                 ['assign_base_id' => $assignBase->id],
                 $leadDetailData
@@ -2104,6 +2214,7 @@ class AuthApiController extends Controller
                     'assigned_to'      => (int) $assignBase->assigned_to,
                     'assigned_to_name' => $assignedUser?->name,
                     'assigned_to_role' => $assignedUser?->role,
+                    'status'           => (string) $assignBase->status,
                     'account_status'   => $assignBase->account_status,
                 ],
             ]);
@@ -2158,20 +2269,27 @@ class AuthApiController extends Controller
             $cusCompanyName = $request->input('cus_company_name', $assignBase->company_name);
             $cusMail = $request->input('cus_mail');
             $price = $request->input('price');
+            $assignedUser = $assignedTo ? User::find($assignedTo) : null;
+            $assignedToAccount = $assignedUser?->isAccount()
+                && $previousAssignedTo != $assignedTo;
 
             // Save or update lead_details
+            $leadDetailData = [
+                'emp_id'           => $empId,
+                'assigned_to'      => $assignedTo,
+                'project_type'     => $projectType,
+                'cus_company_name' => $cusCompanyName,
+                'cus_mail'         => $cusMail,
+                'price'            => $price,
+                'gst'              => $gst,
+                'gst_no'           => $gstNo,
+            ];
+            if ($assignedToAccount) {
+                $leadDetailData['account_status'] = 'NEW';
+            }
             $leadDetail = LeadDetail::updateOrCreate(
                 ['assign_base_id' => $assignBase->id],
-                [
-                    'emp_id'           => $empId,
-                    'assigned_to'      => $assignedTo,
-                    'project_type'     => $projectType,
-                    'cus_company_name' => $cusCompanyName,
-                    'cus_mail'         => $cusMail,
-                    'price'            => $price,
-                    'gst'              => $gst,
-                    'gst_no'           => $gstNo,
-                ]
+                $leadDetailData
             );
 
             // Sync with assign_bases
@@ -2189,12 +2307,10 @@ class AuthApiController extends Controller
                 $assignBase->company_name = $cusCompanyName;
             }
 
-            $assignedUser = $assignedTo ? User::find($assignedTo) : null;
-            $assignedToAccount = $assignedUser?->isAccount()
-                && $previousAssignedTo != $assignedTo;
             if ($assignedToAccount) {
-                $assignBase->status = 'CONFIRMED';
-            } elseif ($request->filled('status')) {
+                $assignBase->account_status = 'NEW';
+            }
+            if ($request->filled('status')) {
                 $assignBase->status = strtoupper(trim((string) $request->status));
             }
             $assignBase->save();

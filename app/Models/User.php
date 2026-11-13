@@ -23,6 +23,7 @@ class User extends Authenticatable
         'mobile',
         'password',
         'role',
+        'monthly_target',
         'application_id',
     ];
 
@@ -46,6 +47,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'monthly_target' => 'decimal:2',
         ];
     }
 

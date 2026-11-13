@@ -30,6 +30,7 @@ class UserController extends Controller
             'role'     => 'required|in:Telecaller,Account,Accounts',
             'email'    => 'nullable|email|unique:users,email',
             'password' => 'required|min:6|confirmed',
+            'monthly_target' => 'required_if:role,Telecaller|nullable|numeric|min:0|max:9999999999.99',
         ]);
 
         $role = in_array(strtolower(trim($request->role)), ['account', 'accounts']) ? 'Account' : $request->role;
@@ -38,6 +39,7 @@ class UserController extends Controller
             'name'     => trim($request->name),
             'mobile'   => trim($request->mobile),
             'role'     => $role,
+            'monthly_target' => $role === 'Telecaller' ? $request->monthly_target : null,
             'email'    => $request->filled('email') ? trim($request->email) : null,
             'password' => $request->password,
         ]);
@@ -61,6 +63,7 @@ class UserController extends Controller
             'role'     => 'required|in:Telecaller,Account,Accounts,Admin',
             'email'    => 'nullable|email|unique:users,email,' . $id,
             'password' => 'nullable|confirmed|min:6',
+            'monthly_target' => 'required_if:role,Telecaller|nullable|numeric|min:0|max:9999999999.99',
         ]);
 
         $user = User::findOrFail($id);
@@ -70,6 +73,9 @@ class UserController extends Controller
         if ($request->filled('role')) {
             $user->role = in_array(strtolower(trim($request->role)), ['account', 'accounts']) ? 'Account' : $request->role;
         }
+        $user->monthly_target = $user->isTelecaller()
+            ? $request->monthly_target
+            : null;
         if ($request->has('email')) {
             $user->email = $request->filled('email') ? trim($request->email) : null;
         }
