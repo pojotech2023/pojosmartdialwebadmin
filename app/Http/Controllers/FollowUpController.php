@@ -56,18 +56,19 @@ class FollowUpController extends Controller
             $lead = $notification->assignBase;
 
             return [
-                'id' => $notification->id,
-                'assign_base_id' => $notification->assign_base_id,
-                'customer_name' => $lead->customer_name,
-                'company_name' => $lead->company_name,
-                'mobile' => $lead->mobile,
-                'telecaller_name' => $notification->employee->name,
-                'notification_status' => $notification->status ?? '',
-                'remarks' => $notification->remarks ?? '',
                 'notification_date' => $notification->notification_date?->format('Y-m-d'),
                 'notification_time' => $notification->notification_time
                     ? Carbon::parse($notification->notification_time)->format('H:i:s')
                     : null,
+                'customer_name' => $lead->customer_name,
+                'company_name' => $lead->company_name,
+                'mobile' => $lead->mobile,
+                'telecaller_name' => $notification->employee->name,
+                'product_type' => $lead->product?->name ?? $lead->product_type ?? 'Website',
+                'notification_status' => $notification->status ?? '',
+                'remarks' => $notification->remarks ?? '',
+                'id' => $notification->id,
+                'assign_base_id' => $notification->assign_base_id,
                 'is_sent' => (bool) $notification->is_sent,
             ];
         });
@@ -218,18 +219,19 @@ class FollowUpController extends Controller
             $lead = $notification->assignBase;
 
             return [
-                'id' => $notification->id,
-                'assign_base_id' => $notification->assign_base_id,
-                'customer_name' => $lead->customer_name,
-                'company_name' => $lead->company_name,
-                'mobile' => $lead->mobile,
-                'telecaller_name' => $notification->employee->name,
-                'notification_status' => $notification->status ?? '',
-                'remarks' => $notification->remarks ?? '',
                 'notification_date' => $notification->notification_date?->format('Y-m-d'),
                 'notification_time' => $notification->notification_time
                     ? Carbon::parse($notification->notification_time)->format('H:i:s')
                     : null,
+                'customer_name' => $lead->customer_name,
+                'company_name' => $lead->company_name,
+                'mobile' => $lead->mobile,
+                'telecaller_name' => $notification->employee->name,
+                'product_type' => $lead->product?->name ?? $lead->product_type ?? 'Website',
+                'notification_status' => $notification->status ?? '',
+                'remarks' => $notification->remarks ?? '',
+                'id' => $notification->id,
+                'assign_base_id' => $notification->assign_base_id,
                 'is_sent' => (bool) $notification->is_sent,
             ];
         })->all();

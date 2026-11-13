@@ -65,9 +65,25 @@ class FollowUpApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $ownReminder->id)
+            ->assertJsonPath('data.0.product_type', 'Website')
             ->assertJsonPath('data.0.customer_name', 'My Customer')
             ->assertJsonPath('pagination.total', 1)
             ->assertDontSee('Other reminder');
+
+        $this->assertSame([
+            'notification_date',
+            'notification_time',
+            'customer_name',
+            'company_name',
+            'mobile',
+            'telecaller_name',
+            'product_type',
+            'notification_status',
+            'remarks',
+            'id',
+            'assign_base_id',
+            'is_sent',
+        ], array_keys($this->getJson('/api/follow-ups?emp_id=' . $telecaller->id)->json('data.0')));
     }
 
     public function test_api_supports_search_and_pagination(): void
@@ -152,6 +168,7 @@ class FollowUpApiTest extends TestCase
             'emp_id' => $telecaller->id,
             'customer_name' => $customerName,
             'company_name' => 'Example Company',
+            'product_type' => 'Website',
             'status' => 'FOLLOW UP',
             'mobile' => '9876543210',
             'assign_date' => now()->toDateString(),
