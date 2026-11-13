@@ -10,9 +10,39 @@
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Shared Theme -->
-    <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ filemtime(public_path('css/theme.css')) }}">
 
     @stack('styles')
+    <style>
+        .sidebar {
+            width: 250px !important;
+            min-width: 250px !important;
+        }
+
+        .sidebar .logo-text,
+        .sidebar .menu span {
+            display: inline !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        .content {
+            margin-left: 250px !important;
+        }
+
+        @media (max-width: 700px) {
+            .sidebar {
+                position: relative !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                height: auto !important;
+            }
+
+            .content {
+                margin-left: 0 !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -73,6 +103,25 @@
 
         <div class="menu-divider"></div>
 
+        @if(auth()->user() && !auth()->user()->isAccount())
+        <li class="{{ request()->routeIs('follow-ups.*') ? 'active' : '' }}">
+            <a href="{{ route('follow-ups.index') }}">
+                <i class="fas fa-list-check"></i>
+                <span>All Follow Up List</span>
+            </a>
+        </li>
+        @endif
+
+        {{-- Accounts Team — Admin view --}}
+        @if(auth()->user() && auth()->user()->isAdmin())
+        <li class="{{ request()->routeIs('accounts.*') ? 'active' : '' }}">
+            <a href="{{ route('accounts.index') }}">
+                <i class="fas fa-user-tie"></i>
+                <span>Accounts Team</span>
+            </a>
+        </li>
+        @endif
+
         <li>
             <a href="{{ route('logout') }}"
                onclick="event.preventDefault();document.getElementById('logout-form').submit();">
@@ -88,15 +137,33 @@
 
     <div class="topbar">
         <div class="topbar-title">@yield('page-title', 'Dashboard')</div>
-        <div class="topbar-user">
-            <div style="display:flex;flex-direction:column;align-items:flex-end;">
-                <span style="font-weight:700;color:#0f172a;">{{ auth()->user()->name ?? '' }}</span>
-                <span style="font-size:10.5px;font-weight:800;color:{{ auth()->user() && auth()->user()->isAccount() ? '#047857' : (auth()->user() && auth()->user()->isAdmin() ? '#b45309' : '#4338ca') }};text-transform:uppercase;letter-spacing:0.04em;">
-                    {{ auth()->user()->role ?? (auth()->user() && auth()->user()->isAdmin() ? 'Admin' : 'Account') }}
+        <details class="topbar-profile">
+            <summary class="topbar-profile-trigger" aria-label="Open profile menu">
+                <span class="topbar-profile-identity">
+                    <span class="topbar-profile-name">{{ auth()->user()->name ?? '' }}</span>
+                    <span class="topbar-profile-role">{{ auth()->user()->role ?? (auth()->user() && auth()->user()->isAdmin() ? 'Admin' : 'Account') }}</span>
                 </span>
+                <span class="topbar-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}</span>
+                <i class="fas fa-chevron-down topbar-profile-chevron" aria-hidden="true"></i>
+            </summary>
+            <div class="topbar-profile-menu">
+                <div class="topbar-profile-menu-heading">
+                    <span class="topbar-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}</span>
+                    <span>
+                        <strong>{{ auth()->user()->name ?? '' }}</strong>
+                        <small>{{ auth()->user()->email ?? auth()->user()->mobile ?? '' }}</small>
+                    </span>
+                </div>
+                <a href="{{ route('profile.edit') }}">
+                    <i class="fas fa-user-gear" aria-hidden="true"></i>
+                    <span>Profile Settings</span>
+                </a>
+                <button type="button" class="topbar-profile-logout" onclick="document.getElementById('logout-form').submit();">
+                    <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+                    <span>Logout</span>
+                </button>
             </div>
-            <div class="topbar-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}</div>
-        </div>
+        </details>
     </div>
 
     <div class="page-body">

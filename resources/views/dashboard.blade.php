@@ -61,12 +61,12 @@
 {{-- ============ FULL-SCREEN MOBILE LEAD DETAILS PANEL ============ --}}
 <div id="leadDetailsPanel" class="notif-panel">
 
-    <div class="notif-panel-header" style="background:linear-gradient(135deg,#f87171,#ef4444 60%,#dc2626);box-shadow:0 8px 24px rgba(239,68,68,0.25);">
+    <div class="notif-panel-header lead-details-panel-header">
         <div class="notif-panel-header-left">
-            <div class="notif-panel-icon" style="background:rgba(255,255,255,0.2);"><i class="fas fa-file-invoice"></i></div>
+            <div class="notif-panel-icon"><i class="fas fa-user-tie"></i></div>
             <div>
-                <div id="leadPanelTitle" class="notif-panel-title">Lead & Project Details</div>
-                <div id="leadPanelSubtitle" class="notif-panel-subtitle">Submitted via Mobile App</div>
+                <div id="leadPanelTitle" class="notif-panel-title">Lead Details</div>
+                <div id="leadPanelSubtitle" class="notif-panel-subtitle">Account Status</div>
             </div>
         </div>
         <button onclick="closeLeadDetailsPanel()" class="notif-close-btn">
@@ -124,7 +124,128 @@
     .notif-close-btn:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
 
     .notif-panel-content { padding: 30px 30px 30px 40px; max-width: 880px; margin: 0; }
-    #leadDetailsPanel .notif-panel-content { max-width: 1000px !important; padding: 24px 20px !important; margin: 0 auto !important; }
+    #leadDetailsPanel {
+        background: #f1f5f9;
+    }
+    #leadDetailsPanel .lead-details-panel-header {
+        padding: 12px 24px;
+        color: #0f172a;
+        background: rgba(255,255,255,.96);
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(15,23,42,.06);
+    }
+    #leadDetailsPanel .notif-panel-icon {
+        color: #047857;
+        background: #d1fae5;
+        backdrop-filter: none;
+    }
+    #leadDetailsPanel .notif-panel-title { font-size: 16px; }
+    #leadDetailsPanel .notif-panel-subtitle { color: #64748b; font-size: 12px; }
+    #leadDetailsPanel .notif-close-btn {
+        padding: 8px 13px;
+        border-color: #e2e8f0;
+        background: #fff;
+        color: #334155;
+    }
+    #leadDetailsPanel .notif-close-btn:hover { background: #f8fafc; }
+    #leadDetailsPanel .notif-panel-content { max-width: 1040px !important; padding: 22px 20px 36px !important; margin: 0 auto !important; }
+    .lead-details-card {
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 8px 28px rgba(15,23,42,.06);
+    }
+    .lead-details-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 18px 22px;
+        color: #0f172a;
+        background: #fff;
+        border-bottom: 1px solid #edf2f7;
+    }
+    .lead-details-identity { display:flex; align-items:center; gap:14px; min-width:0; }
+    .lead-details-avatar {
+        display:flex; align-items:center; justify-content:center;
+        width:52px; height:52px; flex:none;
+        border:0; border-radius:13px;
+        background:#fee2e2; color:#ef4444;
+        font-size:20px; font-weight:800;
+    }
+    .lead-details-name { color:#172033; font-size:18px; font-weight:800; line-height:1.25; }
+    .lead-details-meta { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:6px; color:#64748b; font-size:12px; }
+    .lead-details-hero-right { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
+    .lead-status-block { display:flex; flex-direction:column; gap:5px; min-width:150px; }
+    .lead-status-label { color:#718096; font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+    .lead-details-hero .account-status-select { width:100%; min-width:160px; }
+    .lead-details-hero .status-badge { align-self:flex-start; }
+    .lead-action-link {
+        display:inline-flex; align-items:center; justify-content:center; gap:7px;
+        padding:9px 13px; border:1px solid #e2e8f0; border-radius:9px;
+        color:#0f172a; text-decoration:none; font-size:12px; font-weight:700;
+        background:#f1f5f9; transition:background .15s ease, transform .15s ease;
+    }
+    .lead-action-link:hover { color:#0f172a; background:#e2e8f0; transform:translateY(-1px); }
+    .lead-action-link-whatsapp { border-color:#16a34a; color:#fff; background:#16a34a; }
+    .lead-action-link-whatsapp:hover { background:#15803d; }
+    .lead-details-body { padding:16px 22px 20px; }
+    .lead-panel-layout { display:block; }
+    .lead-panel-section { min-width:0; padding:0; border:0; border-radius:0; background:transparent; }
+    .lead-panel-section-title { display:none; }
+    .lead-panel-section-title i { color:#4f46e5; }
+    .lead-details-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+    .lead-details-grid > div { min-width:0; }
+    .lead-account-note { margin:12px 0 16px; }
+    .lead-account-note-title { margin-bottom:5px; }
+    .lead-activity-section { margin-top:14px; padding-top:14px; border-top:1px solid #edf2f7; }
+    .lead-activity-section > div:first-child { margin-bottom:10px !important; }
+    .lead-activity-section .lead-remarks-list { max-height:280px; }
+    .lead-remarks-list > div { margin:0 !important; padding:11px 13px !important; }
+    .lead-assignment-unassigned { color:#b45309; }
+    @media (max-width: 860px) {
+        .lead-details-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width: 620px) {
+        .lead-details-hero { align-items:flex-start; flex-direction:column; padding:18px; }
+        .lead-details-hero-right { justify-content:flex-start; width:100%; }
+        .lead-status-block { flex:1; }
+        .lead-details-body { padding:13px; }
+        .lead-details-grid { grid-template-columns:1fr; }
+    }
+    .lead-account-note {
+        padding: 11px 13px;
+        margin-bottom: 18px;
+        border: 1px solid #edf2f7;
+        border-radius: 10px;
+        background: #f8fafc;
+    }
+    .lead-account-note-title {
+        margin-bottom: 5px;
+        color: #718096;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+    .lead-account-note-text {
+        color: #1e293b;
+        font-size: 13px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+    .lead-remarks-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 260px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+    @media (max-width: 760px) {
+        #leadDetailsPanel .notif-panel-content { padding: 14px 12px 24px !important; }
+    }
 
     /* Account Status Select Pills & Badges */
     .account-status-select {
@@ -215,6 +336,19 @@
         background: #f8fafc; border-radius: 11px; padding: 9px 13px;
         display: flex; align-items: flex-start; gap: 6px;
         border: 1px solid #f1f5f9;
+    }
+    .nl-notification-status {
+        display:inline-flex;
+        align-items:center;
+        gap:5px;
+        margin-top:8px;
+        padding:4px 9px;
+        border:1px solid #e0e7ff;
+        border-radius:7px;
+        background:#eef2ff;
+        color:#4338ca;
+        font-size:11px;
+        font-weight:700;
     }
 
     .nl-status-pill {
@@ -447,6 +581,7 @@ function renderAll() {
                     <span class="nl-mobile"><i class="fas fa-phone"></i> ${escHtml(n.mobile)}</span>
                     <span class="nl-datetime"><i class="fas fa-calendar"></i> ${n.notification_date} &nbsp;<i class="fas fa-clock"></i> ${n.notification_time}</span>
                 </div>
+                ${n.notification_status ? `<div class="nl-notification-status"><i class="fas fa-tag"></i> Notification Status: ${escHtml(n.notification_status)}</div>` : ''}
                 ${n.remarks ? `<div class="nl-remarks"><i class="fas fa-comment-dots"></i>${escHtml(n.remarks)}</div>` : ''}
             </div>
             <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
@@ -604,26 +739,26 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             @endif
             <div>
-                <label class="form-label">Status</label>
+                @if($isAccount)
+                <label class="form-label">Account Status</label>
+                <select name="account_status">
+                    <option value="">All</option>
+                    <option value="NEW" {{ request('account_status') == 'NEW' ? 'selected' : '' }}>NEW</option>
+                    <option value="IN PROGRESS" {{ request('account_status') == 'IN PROGRESS' ? 'selected' : '' }}>IN PROGRESS</option>
+                    <option value="QUOTATION SHARED" {{ request('account_status') == 'QUOTATION SHARED' ? 'selected' : '' }}>QUOTATION SHARED</option>
+                    <option value="CLIENT REPLIED" {{ request('account_status') == 'CLIENT REPLIED' ? 'selected' : '' }}>CLIENT REPLIED</option>
+                </select>
+                @else
+                <label class="form-label">Telecaller Status</label>
                 <select name="status">
                     <option value="">All</option>
-                    @if(!$isAdmin)
-                        <option value="NEW" {{ request('status') == 'NEW' ? 'selected' : '' }}>NEW</option>
-                        <option value="IN PROGRESS" {{ request('status') == 'IN PROGRESS' ? 'selected' : '' }}>IN PROGRESS</option>
-                        <option value="QUOTATION SHARED" {{ request('status') == 'QUOTATION SHARED' ? 'selected' : '' }}>QUOTATION SHARED</option>
-                        <option value="CLIENT REPLIED" {{ request('status') == 'CLIENT REPLIED' ? 'selected' : '' }}>CLIENT REPLIED</option>
-                    @else
-                        <option value="NEW" {{ request('status') == 'NEW' ? 'selected' : '' }}>NEW</option>
-                        <option value="IN PROGRESS" {{ request('status') == 'IN PROGRESS' ? 'selected' : '' }}>IN PROGRESS</option>
-                        <option value="QUOTATION SHARED" {{ request('status') == 'QUOTATION SHARED' ? 'selected' : '' }}>QUOTATION SHARED</option>
-                        <option value="CLIENT REPLIED" {{ request('status') == 'CLIENT REPLIED' ? 'selected' : '' }}>CLIENT REPLIED</option>
-                        <option value="FOLLOW UP" {{ request('status') == 'FOLLOW UP' ? 'selected' : '' }}>FOLLOW UP</option>
-                        <option value="CONFIRMED" {{ request('status') == 'CONFIRMED' ? 'selected' : '' }}>CONFIRMED</option>
-                        <option value="NOPE" {{ request('status') == 'NOPE' ? 'selected' : '' }}>NOPE</option>
-                    @endif
+                    <option value="NEW" {{ request('status') == 'NEW' ? 'selected' : '' }}>NEW</option>
+                    <option value="FOLLOW UP" {{ request('status') == 'FOLLOW UP' ? 'selected' : '' }}>FOLLOW UP</option>
+                    <option value="CONFIRMED" {{ request('status') == 'CONFIRMED' ? 'selected' : '' }}>CONFIRMED</option>
+                    <option value="NOPE" {{ request('status') == 'NOPE' ? 'selected' : '' }}>NOPE</option>
                 </select>
+                @endif
             </div>
-
             <div>
                 <label class="form-label">Product Type</label>
                 <select name="product_id">
@@ -666,7 +801,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <form method="GET" action="{{ route('dashboard.export') }}" id="exportForm" onsubmit="return confirmExport()">
         <input type="hidden" name="employee_id" id="export_employee_id" value="{{ request('employee_id') }}">
         <input type="hidden" name="product_id" id="export_product_id" value="{{ request('product_id') }}">
-        <input type="hidden" name="status" id="export_status" value="{{ request('status') }}">
+        <input type="hidden" name="{{ $isAccount ? 'account_status' : 'status' }}" id="export_status" value="{{ $isAccount ? request('account_status') : request('status') }}">
         <input type="hidden" name="from_date" id="export_from_date" value="{{ request('from_date') }}">
         <input type="hidden" name="to_date" id="export_to_date" value="{{ request('to_date') }}">
         <button type="submit" class="btn-upload" style="background: linear-gradient(135deg,#34d399,#059669); white-space: nowrap;">
@@ -677,13 +812,12 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 function confirmExport() {
     const employeeId = '{{ request("employee_id") }}';
-    const status = '{{ request("status") }}';
     const fromDate = '{{ request("from_date") }}';
     const toDate = '{{ request("to_date") }}';
     
     // Get actual values from form inputs
     const employeeSelect = document.querySelector('select[name="employee_id"]');
-    const statusSelect = document.querySelector('select[name="status"]');
+    const statusSelect = document.querySelector('select[name="{{ $isAccount ? 'account_status' : 'status' }}"]');
     const fromDateInput = document.querySelector('input[name="from_date"]');
     const toDateInput = document.querySelector('input[name="to_date"]');
     
@@ -721,7 +855,7 @@ function confirmExport() {
     const fromDateText = formatDate(actualFromDate);
     const toDateText = formatDate(actualToDate);
     
-    const message = `Employee: ${employeeName}\nStatus: ${statusText}\nFrom Date: ${fromDateText}\nTo Date: ${toDateText}\n\nDo you want to download the above categories?`;
+    const message = `Employee: ${employeeName}\n{{ $isAccount ? 'Account Status' : 'Telecaller Status' }}: ${statusText}\nFrom Date: ${fromDateText}\nTo Date: ${toDateText}\n\nDo you want to download the above categories?`;
     
     return confirm(message);
 }
@@ -749,7 +883,7 @@ function confirmExport() {
             <th>Customer Name</th>
             <th>Company Name</th>
             <th>Product Type</th>
-            <th>Status</th>
+            <th>{{ $isAccount ? 'Account Status' : 'Telecaller Status' }}</th>
             <th>Mobile</th>
             <th>Date</th>
             <th>Action</th>
@@ -784,8 +918,13 @@ function confirmExport() {
                 @endif
             </td>
             <td>
-                <span id="table-status-badge-{{ $row->id }}" class="status-badge status-{{ \Illuminate\Support\Str::slug($row->status) }}">
-                    {{ $row->status }}
+                @if($isAccount)
+                    @php($displayStatus = $row->account_status ?? $row->leadDetail->account_status ?? 'NEW')
+                @else
+                    @php($displayStatus = $row->status ?? 'NEW')
+                @endif
+                <span class="status-badge status-{{ \Illuminate\Support\Str::slug($displayStatus) }}">
+                    {{ $displayStatus }}
                 </span>
             </td>
             <td>{{ $row->mobile }}</td>
@@ -815,7 +954,7 @@ function confirmExport() {
 @endif
 
 <script>
-const IS_ADMIN = {{ $isAdmin ? 'true' : 'false' }};
+const IS_ACCOUNT = {{ $isAccount ? 'true' : 'false' }};
 
 // ---- Project Details Panel (Eye Icon) ----
 function openLeadDetailsPanel(assignBaseId) {
@@ -862,70 +1001,68 @@ function renderLeadDetails(d) {
     const appt = d.appointment_details || {};
     const notes = Array.isArray(d.notes) ? d.notes : [];
     const isGstYes = (p.gst === 'Y' || p.gst === 'YES');
-    const statusSlug = escHtml((d.status || 'new').toLowerCase().replace(/\s+/g, '-'));
+    const hasAssignedAccount = Boolean(d.assigned_to?.id);
+    const displayStatus = hasAssignedAccount ? (p.account_status || 'NEW') : (d.status || 'NEW');
+    const displayStatusLabel = hasAssignedAccount ? 'Account Status' : 'Telecaller Status';
+    const statusSlug = escHtml(displayStatus.toLowerCase().replace(/\s+/g, '-'));
 
     let html = `
-    <div style="background: #ffffff; border-radius: 18px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden;">
+    <div class="lead-details-card">
 
-        {{-- Single Card Top Header: Customer Info & Quick Actions --}}
-        <div style="padding: 22px 26px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; background: #fafbfc; border-bottom: 1px solid #f1f5f9;">
-            <div style="display: flex; align-items: center; gap: 14px;">
-                <div style="width: 50px; height: 50px; border-radius: 14px; background: linear-gradient(135deg, #fee2e2, #fecaca); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex-shrink: 0;">
+        <div class="lead-details-hero">
+            <div class="lead-details-identity">
+                <div class="lead-details-avatar">
                     ${escHtml((d.customer_name || 'C').charAt(0).toUpperCase())}
                 </div>
                 <div>
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <span style="font-size: 20px; font-weight: 800; color: #0f172a;">
-                            ${escHtml(d.customer_name || 'Customer')}
-                        </span>
-                        <span style="background: #eef2ff; color: #4338ca; padding: 3px 10px; border-radius: 8px; font-weight: 700; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
-                            <i class="fas fa-tag" style="font-size: 10px;"></i> ${escHtml(p.project_type || d.product_type || 'Website')}
-                        </span>
-                    </div>
-                    <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 8px;">
-                        <span><i class="far fa-building" style="color:#94a3b8; margin-right: 4px;"></i> ${escHtml(p.cus_company_name || d.company_name || '—')}</span>
-                        <span style="color: #cbd5e1;">&bull;</span>
-                        <span><i class="far fa-calendar-alt" style="color:#94a3b8; margin-right: 4px;"></i> ${escHtml(d.assign_date || '—')}</span>
+                    <div class="lead-details-name">${escHtml(d.customer_name || 'Customer')}</div>
+                    <div class="lead-details-meta">
+                        <span><i class="fas fa-tag"></i> ${escHtml(p.project_type || d.product_type || 'Website')}</span>
+                        <span><i class="far fa-building"></i> ${escHtml(p.cus_company_name || d.company_name || '—')}</span>
+                        <span><i class="far fa-calendar-alt"></i> ${escHtml(d.assign_date || '—')}</span>
                     </div>
                 </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                ${IS_ADMIN ? `
-                    <span class="status-badge status-${statusSlug}" style="padding: 7px 16px; font-size: 12.5px;">
-                        ${escHtml(d.status || 'NEW')}
-                    </span>
-                ` : `
-                    <div style="display: inline-flex; align-items: center; gap: 6px; background: #fff; padding: 3px 8px 3px 12px; border-radius: 999px; border: 1.5px solid #e2e8f0;">
-                        <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Status:</span>
-                        <select class="account-status-select status-${statusSlug}"
+            <div class="lead-details-hero-right">
+                <div class="lead-status-block">
+                    <div class="lead-status-label">${displayStatusLabel}</div>
+                    ${hasAssignedAccount && IS_ACCOUNT ? `
+                        <select id="modal-status-badge-${d.id}"
+                                class="account-status-select status-${statusSlug}"
                                 data-lead-id="${d.id}"
-                                data-current="${escHtml(d.status || 'NEW')}"
+                                data-current="${escHtml(displayStatus)}"
                                 onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
-                                style="padding: 5px 12px; font-size: 12px;">
-                            <option value="NEW" ${String(d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
-                            <option value="IN PROGRESS" ${String(d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
-                            <option value="QUOTATION SHARED" ${String(d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
-                            <option value="CLIENT REPLIED" ${String(d.status).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
+                                style="padding: 8px 12px; font-size: 12px; font-weight: 800;">
+                            <option value="NEW" ${String(displayStatus).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
+                            <option value="IN PROGRESS" ${String(displayStatus).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
+                            <option value="QUOTATION SHARED" ${String(displayStatus).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
+                            <option value="CLIENT REPLIED" ${String(displayStatus).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
                         </select>
-                    </div>
-                `}
+                    ` : `
+                        <span id="modal-status-badge-${d.id}" class="status-badge status-${statusSlug}" style="padding: 7px 13px; font-size: 12px;">
+                            ${escHtml(displayStatus)}
+                        </span>
+                    `}
+                </div>
 
-                <a href="tel:${escHtml(d.mobile)}" style="background: #f1f5f9; color: #0f172a; padding: 8px 16px; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-phone-alt" style="color: #059669;"></i> ${escHtml(d.mobile)}
+                <a class="lead-action-link" href="tel:${escHtml(d.mobile)}">
+                    <i class="fas fa-phone-alt"></i> Call
                 </a>
 
-                <a href="https://wa.me/${escHtml(d.mobile).replace(/[^\d]/g, '')}" target="_blank" style="background: linear-gradient(135deg,#25d366,#128c4a); color: #fff; padding: 8px 16px; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,211,102,0.25);">
-                    <i class="fab fa-whatsapp" style="font-size: 15px;"></i> WhatsApp
+                <a class="lead-action-link lead-action-link-whatsapp" href="https://wa.me/${escHtml(d.mobile).replace(/[^\d]/g, '')}" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
                 </a>
             </div>
         </div>
 
-        {{-- Single Card Body --}}
-        <div style="padding: 24px 26px;">
+        <div class="lead-details-body">
+          <div class="lead-panel-layout">
+            <section class="lead-panel-section">
+                <h3 class="lead-panel-section-title"><i class="fas fa-circle-info"></i> Lead overview</h3>
 
             {{-- 1. Unified Project & Assignment Key-Value Grid --}}
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 22px;">
+            <div class="lead-details-grid" style="margin-bottom:14px;">
 
                 {{-- Origin Telecaller --}}
                 <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 14px;">
@@ -943,10 +1080,10 @@ function renderLeadDetails(d) {
                     <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
                         <i class="fas fa-user-shield" style="color: #059669; margin-right: 4px;"></i> Assigned Account
                     </div>
-                    <div style="font-size: 14px; font-weight: 800; color: #047857;">
-                        ${escHtml(d.assigned_to?.name || '—')}
+                    <div class="lead-assignment-unassigned" style="font-size: 14px; font-weight: 800; color: ${hasAssignedAccount ? '#047857' : '#b45309'};">
+                        ${escHtml(hasAssignedAccount ? d.assigned_to.name : 'Not assigned')}
                     </div>
-                    ${d.assigned_to?.mobile ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">${escHtml(d.assigned_to.mobile)}</div>` : ''}
+                    ${hasAssignedAccount && d.assigned_to?.mobile ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">${escHtml(d.assigned_to.mobile)}</div>` : ''}
                 </div>
 
                 {{-- Project Type --}}
@@ -1011,53 +1148,19 @@ function renderLeadDetails(d) {
 
             </div>
 
-            {{-- 2. Account Status & Note Section --}}
-            ${!IS_ADMIN ? `
-                <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 22px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase;">
-                            <i class="fas fa-tasks" style="color: #6366f1; margin-right: 4px;"></i> Account Status & Note
-                        </span>
-                        <strong id="modal-status-badge-${d.id}" class="status-badge status-${statusSlug}" style="padding: 3px 10px; font-size: 11px;">
-                            ${escHtml(p.account_status || d.status || 'NEW')}
-                        </strong>
-                    </div>
-                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <select id="modalStatusSelect-${d.id}" class="account-status-select status-${statusSlug}"
-                                data-lead-id="${d.id}"
-                                data-current="${escHtml(p.account_status || d.status || 'NEW')}"
-                                onchange="changeAccountLeadStatus(${d.id}, this.value, this)"
-                                style="padding: 8px 14px; font-size: 12.5px;">
-                            <option value="NEW" ${String(p.account_status || d.status).toUpperCase() === 'NEW' ? 'selected' : ''}>NEW</option>
-                            <option value="IN PROGRESS" ${String(p.account_status || d.status).toUpperCase() === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
-                            <option value="QUOTATION SHARED" ${String(p.account_status || d.status).toUpperCase() === 'QUOTATION SHARED' ? 'selected' : ''}>QUOTATION SHARED</option>
-                            <option value="CLIENT REPLIED" ${String(p.account_status || d.status).toUpperCase() === 'CLIENT REPLIED' ? 'selected' : ''}>CLIENT REPLIED</option>
-                        </select>
-                        <input type="text" id="modalRemarks-${d.id}" value="${escHtml(p.account_remarks || '')}" placeholder="Add account note (e.g. quotation sent)..." style="flex: 1; min-width: 220px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 13px; outline: none; background: #fff;">
-                        <button onclick="saveAccountRemarks(${d.id})" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; border:none; padding:8px 18px; border-radius:10px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;">
-                            Save Note
-                        </button>
-                    </div>
-                    ${d.account_status_details?.updated_by && d.account_status_details.updated_by !== '—' ? `
-                        <div style="font-size: 11.5px; color: #94a3b8; margin-top: 8px;">
-                            Updated by <strong>${escHtml(d.account_status_details.updated_by)}</strong> on ${escHtml(d.account_status_details.updated_at || '—')}
-                        </div>
-                    ` : ''}
+            {{-- Account note --}}
+            ${hasAssignedAccount ? `<div class="lead-account-note">
+                <div class="lead-account-note-title">
+                    <i class="fas fa-sticky-note" style="color:#059669;margin-right:4px;"></i> Account Note
                 </div>
-            ` : `
-                ${p.account_remarks ? `
-                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px 16px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                    <span style="font-size: 13px; color: #475569; font-weight: 600;">
-                        <i class="fas fa-sticky-note" style="color: #6366f1; margin-right: 6px;"></i> Account Note: <strong>${escHtml(p.account_remarks)}</strong>
-                    </span>
-                    ${d.account_status_details?.updated_by && d.account_status_details.updated_by !== '—' ? `
-                        <span style="font-size: 11.5px; color: #94a3b8;">
-                            By ${escHtml(d.account_status_details.updated_by)} on ${escHtml(d.account_status_details.updated_at || '—')}
-                        </span>
-                    ` : ''}
-                </div>
+                <div class="lead-account-note-text">${p.account_remarks ? escHtml(p.account_remarks) : 'No account note added.'}</div>
+                ${d.account_status_details?.updated_by && d.account_status_details.updated_by !== '—' ? `
+                    <div style="margin-top:6px;color:#64748b;font-size:11px;">
+                        Last updated by <strong>${escHtml(d.account_status_details.updated_by)}</strong>
+                        on ${escHtml(d.account_status_details.updated_at || '—')}
+                    </div>
                 ` : ''}
-            `}
+            </div>` : ''}
 
             {{-- 3. Appointment / Meeting (if scheduled) --}}
             ${appt && (appt.appointment_date || appt.location || appt.alternate_number) ? `
@@ -1073,8 +1176,9 @@ function renderLeadDetails(d) {
                 </div>
             ` : ''}
 
-            {{-- 4. Telecaller Remarks History --}}
-            <div style="border-top: 1px solid #f1f5f9; padding-top: 18px;">
+            </section>
+
+            <aside class="lead-panel-section lead-activity-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <div style="font-size: 14px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-history" style="color: #6366f1;"></i> Telecaller Remarks History
@@ -1089,7 +1193,7 @@ function renderLeadDetails(d) {
                         No remarks submitted from mobile app yet.
                     </div>
                 ` : `
-                    <div style="display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto;">
+                    <div class="lead-remarks-list">
                         ${notes.map(n => `
                             <div style="background: #f8fafc; border-radius: 10px; padding: 12px 14px; border: 1px solid #f1f5f9;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 12px; flex-wrap: wrap; gap: 6px;">
@@ -1106,8 +1210,9 @@ function renderLeadDetails(d) {
                         `).join('')}
                     </div>
                 `}
-            </div>
+            </aside>
 
+          </div>
         </div>
 
     </div>
@@ -1124,10 +1229,10 @@ function changeAccountLeadStatus(leadId, newStatus, selectElement, remarks = nul
     const oldStatus = selectElement ? (selectElement.getAttribute('data-current') || '') : '';
     if (selectElement) selectElement.disabled = true;
 
-    if (remarks === null) {
-        const remarksInput = document.getElementById('modalRemarks-' + leadId);
-        remarks = remarksInput ? remarksInput.value.trim() : '';
-    }
+    const remarksInput = document.getElementById('modalRemarks-' + leadId);
+    if (remarks === null && remarksInput) remarks = remarksInput.value.trim();
+    const payload = { assign_base_id: leadId, account_status: newStatus };
+    if (remarks !== null) payload.account_remarks = remarks;
 
     fetch(UPDATE_LEAD_STATUS_ROUTE, {
         method: 'POST',
@@ -1135,12 +1240,7 @@ function changeAccountLeadStatus(leadId, newStatus, selectElement, remarks = nul
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
         },
-        body: JSON.stringify({
-            assign_base_id: leadId,
-            status: newStatus,
-            account_status: newStatus,
-            account_remarks: remarks
-        })
+        body: JSON.stringify(payload)
     })
     .then(r => r.json())
     .then(res => {
@@ -1150,7 +1250,7 @@ function changeAccountLeadStatus(leadId, newStatus, selectElement, remarks = nul
 
             const slug = newStatus.toLowerCase().replace(/\s+/g, '-');
 
-            // Sync all select elements for this lead (in table and in modal)
+            // Sync account-status selects without changing the telecaller status.
             document.querySelectorAll(`select[data-lead-id="${leadId}"]`).forEach(el => {
                 el.className = 'account-status-select status-' + slug;
                 el.setAttribute('data-current', newStatus);
@@ -1158,12 +1258,17 @@ function changeAccountLeadStatus(leadId, newStatus, selectElement, remarks = nul
             });
 
             // Update badges if present
-            const modalBadge = document.getElementById('modal-status-badge-' + leadId);
-            if (modalBadge) {
-                modalBadge.className = 'status-badge status-' + slug;
-                modalBadge.textContent = newStatus;
+            const modalStatus = document.getElementById('modal-status-badge-' + leadId);
+            if (modalStatus) {
+                modalStatus.className = (modalStatus.tagName === 'SELECT' ? 'account-status-select' : 'status-badge') + ' status-' + slug;
+                if (modalStatus.tagName === 'SELECT') {
+                    modalStatus.value = newStatus;
+                    modalStatus.setAttribute('data-current', newStatus);
+                } else {
+                    modalStatus.textContent = newStatus;
+                }
             }
-            const tableBadge = document.getElementById('table-status-badge-' + leadId);
+            const tableBadge = document.getElementById('account-table-status-' + leadId);
             if (tableBadge) {
                 tableBadge.className = 'status-badge status-' + slug;
                 tableBadge.textContent = newStatus;
@@ -1179,15 +1284,6 @@ function changeAccountLeadStatus(leadId, newStatus, selectElement, remarks = nul
         }
         showStatusToast('Update Failed', err.message || err, false);
     });
-}
-
-function saveAccountRemarks(leadId) {
-    const select = document.querySelector(`select[data-lead-id="${leadId}"]`);
-    const status = select ? select.value : 'NEW';
-    const remarksInput = document.getElementById('modalRemarks-' + leadId);
-    const remarks = remarksInput ? remarksInput.value.trim() : '';
-
-    changeAccountLeadStatus(leadId, status, select, remarks);
 }
 
 function showStatusToast(title, message, isSuccess = true) {

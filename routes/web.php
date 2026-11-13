@@ -8,6 +8,9 @@ use App\Http\Controllers\WhatsappNotificationController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\AccountsController;
+use App\Http\Controllers\FollowUpController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Api\AuthApiController;
 
 /*
@@ -35,6 +38,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 */
 Route::middleware('auth')->group(function () {
 
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
     Route::get('/dashboard', [AuthController::class, 'dashboard'])
         ->name('dashboard');
 
@@ -55,6 +61,14 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/dashboard/update-lead-status', [AuthController::class, 'updateLeadStatus'])
         ->name('dashboard.update-lead-status');
+
+    Route::get('/follow-ups', [FollowUpController::class, 'index'])
+        ->name('follow-ups.index');
+    Route::get('/follow-ups/data', [FollowUpController::class, 'data'])
+        ->name('follow-ups.data');
+
+    // ===== ACCOUNTS TEAM =====
+    Route::get('/accounts', [AccountsController::class, 'index'])->name('accounts.index');
 
     /*
     |--------------------------------------------------------------------------
