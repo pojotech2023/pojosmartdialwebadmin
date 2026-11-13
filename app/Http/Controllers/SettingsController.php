@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 class SettingsController extends Controller
 {
     /**
-     * Display settings page with Product Types and Telecaller Status tabs.
+     * Display settings page with Product Types and Notification Status tabs.
      */
     public function index(Request $request)
     {
@@ -80,7 +80,7 @@ class SettingsController extends Controller
     }
 
     /* =========================================================================
-     * TELECALLER STATUS MANAGEMENT
+     * NOTIFICATION STATUS MANAGEMENT
      * ========================================================================= */
 
     public function storeStatus(Request $request)
@@ -109,7 +109,7 @@ class SettingsController extends Controller
         ]);
 
         return redirect()->route('settings.index', ['tab' => 'statuses'])
-            ->with('success', "Telecaller status '{$name}' created successfully!");
+            ->with('success', "Notification status '{$name}' created successfully!");
     }
 
     public function updateStatus(Request $request, TelecallerStatus $telecallerStatus)
@@ -138,7 +138,7 @@ class SettingsController extends Controller
         ]);
 
         return redirect()->route('settings.index', ['tab' => 'statuses'])
-            ->with('success', "Telecaller status '{$name}' updated successfully!");
+            ->with('success', "Notification status '{$name}' updated successfully!");
     }
 
     public function destroyStatus(TelecallerStatus $telecallerStatus)
@@ -147,6 +147,6 @@ class SettingsController extends Controller
         $telecallerStatus->delete();
 
         return redirect()->route('settings.index', ['tab' => 'statuses'])
-            ->with('success', "Telecaller status '{$name}' deleted successfully!");
+            ->with('success', "Notification status '{$name}' deleted successfully!");
     }
 }

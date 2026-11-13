@@ -3,8 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\FollowUpController;
 
 Route::post('/login', [AuthApiController::class, 'login']);
+Route::get('/follow-ups', [FollowUpController::class, 'apiData']);
 Route::match(['get', 'post'], '/assign-base', [AuthApiController::class, 'assignBaseByEmployee']);
 Route::match(['get', 'post'], '/assign-base-by-employee', [AuthApiController::class, 'assignBaseByEmployee']);
 Route::post('/update-single-status', [AuthApiController::class, 'updateAssignBaseStatus']);
@@ -78,6 +80,5 @@ Route::post('/update-status', [AuthApiController::class, 'updateLeadStatus']);
 // F. Lead Account Status (for Mobile App & Web)
 Route::match(['get', 'post'], '/lead-account-status/{assignBaseId?}', [AuthApiController::class, 'getLeadAccountStatus']);
 Route::post('/update-account-status', [AuthApiController::class, 'updateAccountStatus']);
-
 
 

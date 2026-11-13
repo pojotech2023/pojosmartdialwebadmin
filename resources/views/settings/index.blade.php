@@ -8,7 +8,7 @@
     {{-- Page Header --}}
     <div class="settings-header">
         <h1 class="settings-title">Settings</h1>
-        <p class="settings-subtitle">Manage product types and telecaller lead statuses used across the app.</p>
+        <p class="settings-subtitle">Manage product types and notification statuses used across the app.</p>
 
         {{-- Underline Tabs (Like PojoInfra360) --}}
         <div class="settings-tabs-underline">
@@ -22,7 +22,7 @@
                     id="btnTabStatuses" 
                     class="tab-link {{ $activeTab === 'statuses' ? 'active' : '' }}" 
                     onclick="switchSettingsTab('statuses')">
-                <i class="fas fa-headset"></i> Telecaller Status
+                <i class="fas fa-bell"></i> Notification Status
             </button>
         </div>
     </div>
@@ -108,20 +108,20 @@
     </div>
 
     {{-- ========================================================================= --}}
-    {{-- TAB 2: TELECALLER STATUS --}}
+    {{-- TAB 2: NOTIFICATION STATUS --}}
     {{-- ========================================================================= --}}
     <div id="tabStatusesView" style="{{ $activeTab === 'statuses' ? '' : 'display:none;' }}">
         <div class="settings-card">
             {{-- Card Header: Title + Add Button --}}
             <div class="settings-card-header">
-                <h2 class="card-heading">Status List</h2>
+                <h2 class="card-heading">Notification Status List</h2>
                 <div class="card-header-actions">
                     <input type="text" 
                            class="search-mini-input" 
                            placeholder="Search statuses..." 
                            oninput="filterTable(this.value, 'statusesTable')">
                     <button type="button" class="btn-blue-primary" onclick="openAddStatusModal()">
-                        <i class="fas fa-plus"></i> Add Status
+                        <i class="fas fa-plus"></i> Add Notification Status
                     </button>
                 </div>
             </div>
@@ -235,14 +235,14 @@
 </div>
 
 {{-- ========================================================================= --}}
-{{-- MODALS: ADD / EDIT TELECALLER STATUS --}}
+{{-- MODALS: ADD / EDIT NOTIFICATION STATUS --}}
 {{-- ========================================================================= --}}
 
 {{-- Add Status Modal --}}
 <div id="addStatusModal" class="simple-modal-backdrop" onclick="if(event.target.id === 'addStatusModal') closeAddStatusModal()">
     <div class="simple-modal-box">
         <div class="simple-modal-header">
-            <h3 class="simple-modal-title">Add Status</h3>
+            <h3 class="simple-modal-title">Add Notification Status</h3>
             <button type="button" class="simple-close-btn" onclick="closeAddStatusModal()">&times;</button>
         </div>
         <form method="POST" action="{{ route('settings.statuses.store') }}">
@@ -250,7 +250,7 @@
             <input type="hidden" name="color" value="#2563eb">
             <input type="hidden" name="is_active" value="1">
             <div class="simple-modal-body">
-                <label class="simple-field-label">Status Name <span class="text-danger">*</span></label>
+                <label class="simple-field-label">Notification Status Name <span class="text-danger">*</span></label>
                 <input type="text" 
                        id="addStatusNameInput" 
                        name="name" 
@@ -271,7 +271,7 @@
 <div id="editStatusModal" class="simple-modal-backdrop" onclick="if(event.target.id === 'editStatusModal') closeEditStatusModal()">
     <div class="simple-modal-box">
         <div class="simple-modal-header">
-            <h3 class="simple-modal-title">Edit Status</h3>
+            <h3 class="simple-modal-title">Edit Notification Status</h3>
             <button type="button" class="simple-close-btn" onclick="closeEditStatusModal()">&times;</button>
         </div>
         <form id="editStatusForm" method="POST" action="">
@@ -280,7 +280,7 @@
             <input type="hidden" id="editStatusColorPicker" name="color" value="#2563eb">
             <input type="hidden" id="editStatusIsActive" name="is_active" value="1">
             <div class="simple-modal-body">
-                <label class="simple-field-label">Status Name <span class="text-danger">*</span></label>
+                <label class="simple-field-label">Notification Status Name <span class="text-danger">*</span></label>
                 <input type="text" 
                        id="editStatusNameInput" 
                        name="name" 

@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Services\FirebaseService;
 use App\Jobs\SendScheduledNotification;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +19,9 @@ use Illuminate\Support\Facades\Artisan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\Encryption\DecryptException;
 
 class AuthApiController extends Controller
 {
@@ -49,6 +53,14 @@ class AuthApiController extends Controller
             'role'             => $user->role ?? 'Telecaller',
             'is_telecaller'    => $user->isTelecaller(),
             'is_account'       => $user->isAccount(),
+            'access_token'     => $this->canCreateMobileReminder($user)
+                ? $this->createMobileReminderToken($user)
+                : null,
+            'token_type'       => 'Bearer',
+            'expires_in'       => $this->canCreateMobileReminder($user) ? 2592000 : null,
+            'follow_up_token'  => $this->canAccessMobileFollowUps($user)
+                ? $this->createMobileFollowUpToken($user)
+                : null,
             'data' => [
                 'emp_id' => $user->id,
                 'name'   => $user->name,
@@ -1001,6 +1013,11 @@ class AuthApiController extends Controller
 
     public function createNotification(Request $request)
     {
+        $telecaller = $this->requireMobileReminderTelecaller($request);
+        if ($telecaller instanceof JsonResponse) {
+            return $telecaller;
+        }
+
         try {
             // Validate input
             $request->validate([
@@ -1010,6 +1027,13 @@ class AuthApiController extends Controller
                 'notification_time'    => 'required|date_format:H:i',
                 'remarks'              => 'required|string',
             ]);
+
+            if ((int) $request->emp_id !== $telecaller->id) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'You can only create reminders for your own employee account',
+                ], 403);
+            }
 
             // Parse date from d/m/Y to Y-m-d
             $notificationDate = Carbon::createFromFormat('d/m/Y', $request->notification_date)->format('Y-m-d');
@@ -1047,6 +1071,11 @@ class AuthApiController extends Controller
 
     public function saveNotification(Request $request)
     {
+        $telecaller = $this->requireMobileReminderTelecaller($request);
+        if ($telecaller instanceof JsonResponse) {
+            return $telecaller;
+        }
+
         try {
             $request->validate([
                 'id'                  => 'nullable|integer|exists:notifications,id',
@@ -1061,6 +1090,24 @@ class AuthApiController extends Controller
                 'location'            => 'nullable|string',
                 'alternate_number'    => 'nullable|string|max:50',
             ]);
+
+            if ((int) $request->emp_id !== $telecaller->id) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'You can only create reminders for your own employee account',
+                ], 403);
+            }
+
+            $assignBase = AssignBase::where('id', $request->assign_base_id)
+                ->where('emp_id', $telecaller->id)
+                ->first();
+
+            if (!$assignBase) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'This customer is not assigned to your employee account',
+                ], 403);
+            }
 
             $rawDate = $request->notification_date;
             if (strpos($rawDate, '/') !== false) {
@@ -1097,6 +1144,7 @@ class AuthApiController extends Controller
             } else {
                 $notification = Notification::create([
                     'emp_id'            => $request->emp_id,
+                    'user_id'           => $telecaller->id,
                     'assign_base_id'    => $request->assign_base_id,
                     'notification_date' => $notificationDate,
                     'notification_time' => $request->notification_time,
@@ -1244,6 +1292,11 @@ class AuthApiController extends Controller
    
     public function sendPushNotification(Request $request)
     {
+        $telecaller = $this->requireMobileReminderTelecaller($request);
+        if ($telecaller instanceof JsonResponse) {
+            return $telecaller;
+        }
+
         try {
             $request->validate([
                 'assign_base_id' => 'required|integer|exists:assign_bases,id',
@@ -1261,6 +1314,13 @@ class AuthApiController extends Controller
                 ], 404);
             }
 
+            if ((int) $assignBase->emp_id !== $telecaller->id) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'This customer is not assigned to your employee account',
+                ], 403);
+            }
+
             // Parse the date and time in Asia/Kolkata timezone
             $notificationDate = Carbon::createFromFormat('d/m/Y', $request->date)->format('Y-m-d');
             $scheduledDateTime = Carbon::createFromFormat('Y-m-d H:i', $notificationDate . ' ' . $request->time, 'Asia/Kolkata');
@@ -1272,7 +1332,7 @@ class AuthApiController extends Controller
             $notification = Notification::create([
                 'assign_base_id' => $request->assign_base_id,
                 'emp_id' => $assignBase->emp_id,
-                'user_id' => $assignBase->user_id,
+                'user_id' => $telecaller->id,
                 'notification_date' => $notificationDate,
                 'notification_time' => $request->time,
                 'remarks' => $request->remarks ?? 'reminder',
@@ -1311,6 +1371,11 @@ class AuthApiController extends Controller
 
     public function sendScheduledNotification(Request $request)
     {
+        $telecaller = $this->requireMobileReminderTelecaller($request);
+        if ($telecaller instanceof JsonResponse) {
+            return $telecaller;
+        }
+
         try {
             $request->validate([
                 'user_id'               => 'required|integer|exists:users,id',
@@ -1319,6 +1384,13 @@ class AuthApiController extends Controller
                 'notification_time'     => 'required|date_format:H:i',
                 'remarks'               => 'required|string',
             ]);
+
+            if ((int) $request->user_id !== $telecaller->id) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'You can only create reminders for your own employee account',
+                ], 403);
+            }
 
             // Parse date
             $notificationDate = Carbon::createFromFormat('d/m/Y', $request->notification_date)->format('Y-m-d');
@@ -1422,12 +1494,92 @@ class AuthApiController extends Controller
                     'emp_id' => $notification->emp_id
                 ]);
             }
+
         } catch (\Exception $e) {
             Log::error('Error scheduling notification', [
                 'notification_id' => $notification->id,
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    private function canCreateMobileReminder(User $user): bool
+    {
+        return $user->isTelecaller() && !$user->isAdmin() && !$user->isAccount();
+    }
+
+    private function canAccessMobileFollowUps(User $user): bool
+    {
+        return $user->isAdmin()
+            || ($user->isTelecaller() && !$user->isAccount());
+    }
+
+    private function createMobileFollowUpToken(User $user): string
+    {
+        return Crypt::encryptString(implode('|', [
+            'mobile-follow-ups',
+            $user->id,
+            now()->addDays(30)->timestamp,
+        ]));
+    }
+
+    private function createMobileReminderToken(User $user): string
+    {
+        return Crypt::encryptString(implode('|', [
+            'mobile-reminders',
+            $user->id,
+            now()->addDays(30)->timestamp,
+        ]));
+    }
+
+    private function requireMobileReminderTelecaller(Request $request): User|JsonResponse
+    {
+        $token = $request->bearerToken();
+        if (!$token) {
+            return response()->json([
+                'status' => false,
+                'message' => 'A Telecaller login token is required',
+            ], 401);
+        }
+
+        try {
+            $claims = explode('|', Crypt::decryptString($token));
+        } catch (DecryptException $exception) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The login token is invalid or expired',
+            ], 401);
+        }
+
+        if (
+            count($claims) !== 3
+            || $claims[0] !== 'mobile-reminders'
+            || !ctype_digit($claims[1])
+            || !ctype_digit($claims[2])
+            || (int) $claims[2] <= now()->timestamp
+        ) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The login token is invalid or expired',
+            ], 401);
+        }
+
+        $user = User::find((int) $claims[1]);
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'The login token is invalid or expired',
+            ], 401);
+        }
+
+        if (!$this->canCreateMobileReminder($user)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Only Telecallers can create mobile reminders',
+            ], 403);
+        }
+
+        return $user;
     }
 
     /**
@@ -1505,6 +1657,11 @@ class AuthApiController extends Controller
                     }
 
                     $notifDatetime = Carbon::parse($dateStr . ' ' . $time24);
+
+                    if ($notifDatetime->lte($now)) {
+                        continue;
+                    }
+
                     $isSent = (bool) $n->is_sent;
                     $isDue = false;
 
@@ -1915,24 +2072,28 @@ class AuthApiController extends Controller
             ]);
 
             $assignBase = AssignBase::with(['employee', 'assignedUser'])->findOrFail($request->assign_base_id);
+            $assignedUser = User::findOrFail($request->assigned_to);
 
             // Update assigned_to on assign_bases table
             $assignBase->assigned_to = $request->assigned_to;
             if ($request->filled('emp_id')) {
                 $assignBase->emp_id = $request->emp_id;
             }
+
+            if ($assignedUser->isAccount()) {
+                $assignBase->status = 'CONFIRMED';
+            }
             $assignBase->save();
 
             // Sync with lead_details table
+            $leadDetailData = [
+                'emp_id'      => $assignBase->emp_id,
+                'assigned_to' => $request->assigned_to,
+            ];
             $leadDetail = LeadDetail::updateOrCreate(
                 ['assign_base_id' => $assignBase->id],
-                [
-                    'emp_id'      => $assignBase->emp_id,
-                    'assigned_to' => $request->assigned_to,
-                ]
+                $leadDetailData
             );
-
-            $assignedUser = User::find($request->assigned_to);
 
             return response()->json([
                 'status'  => true,
@@ -1943,6 +2104,7 @@ class AuthApiController extends Controller
                     'assigned_to'      => (int) $assignBase->assigned_to,
                     'assigned_to_name' => $assignedUser?->name,
                     'assigned_to_role' => $assignedUser?->role,
+                    'account_status'   => $assignBase->account_status,
                 ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1979,6 +2141,7 @@ class AuthApiController extends Controller
             ]);
 
             $assignBase = AssignBase::findOrFail($request->assign_base_id);
+            $previousAssignedTo = $assignBase->assigned_to;
 
             $gst = strtoupper(trim((string) $request->input('gst', 'N')));
             if ($gst !== 'Y' && $gst !== 'YES') {
@@ -2026,25 +2189,15 @@ class AuthApiController extends Controller
                 $assignBase->company_name = $cusCompanyName;
             }
 
-            // Determine account status:
-            // If already set to a non-NEW status by Accounts team (e.g. IN PROGRESS, QUOTATION SHARED, CLIENT REPLIED), PRESERVE IT!
-            // Otherwise, default to NEW (or requested status).
-            $existingStatus = $assignBase->account_status ?: ($leadDetail->account_status ?: $assignBase->status);
-            $preserveList = ['IN PROGRESS', 'QUOTATION SHARED', 'CLIENT REPLIED'];
-            if (!empty($existingStatus) && in_array(strtoupper(trim($existingStatus)), $preserveList)) {
-                $finalStatus = strtoupper(trim($existingStatus));
-            } else {
-                $requestedStatus = strtoupper(trim((string) $request->input('status', '')));
-                $finalStatus = !empty($requestedStatus) ? $requestedStatus : 'NEW';
+            $assignedUser = $assignedTo ? User::find($assignedTo) : null;
+            $assignedToAccount = $assignedUser?->isAccount()
+                && $previousAssignedTo != $assignedTo;
+            if ($assignedToAccount) {
+                $assignBase->status = 'CONFIRMED';
+            } elseif ($request->filled('status')) {
+                $assignBase->status = strtoupper(trim((string) $request->status));
             }
-
-            $assignBase->status = $finalStatus;
-            $assignBase->account_status = $finalStatus;
             $assignBase->save();
-
-            // Also keep leadDetail in sync
-            $leadDetail->account_status = $finalStatus;
-            $leadDetail->save();
 
             return response()->json([
                 'status'  => true,
@@ -2052,7 +2205,7 @@ class AuthApiController extends Controller
                 'data'    => [
                     'assign_base_id'   => $assignBase->id,
                     'status'           => (string) $assignBase->status,
-                    'account_status'   => (string) $assignBase->account_status,
+                    'account_status'   => (string) ($assignBase->account_status ?? $leadDetail->account_status ?? 'NEW'),
                     'assigned_to'      => $leadDetail->assigned_to ? (int)$leadDetail->assigned_to : null,
                     'project_type'     => (string) $leadDetail->project_type,
                     'cus_company_name' => (string) $leadDetail->cus_company_name,
@@ -2122,7 +2275,7 @@ class AuthApiController extends Controller
                 $gstNo = '';
             }
 
-            $accountStatus = $leadDetail?->account_status ?? $assignBase->account_status ?? $assignBase->status ?? 'NEW';
+            $accountStatus = $assignBase->account_status ?? $leadDetail?->account_status ?? 'NEW';
             $accountRemarks = $leadDetail?->account_remarks ?? $assignBase->account_remarks ?? '';
             $accountUpdater = $leadDetail?->accountUpdatedBy?->name ?? $assignBase->accountUpdatedBy?->name ?? $assignBase->assignedUser?->name ?? '—';
             $accountUpdatedAt = $leadDetail?->account_updated_at ?? $assignBase->account_updated_at;
@@ -2177,9 +2330,8 @@ class AuthApiController extends Controller
 
             $leadDetail = $assignBase->leadDetail;
 
-            $accountStatus = $leadDetail?->account_status
-                ?? $assignBase->account_status
-                ?? $assignBase->status
+            $accountStatus = $assignBase->account_status
+                ?? $leadDetail?->account_status
                 ?? 'NEW';
 
             $accountRemarks = $leadDetail?->account_remarks
@@ -2244,7 +2396,6 @@ class AuthApiController extends Controller
 
             // 1. Update assign_bases table
             $assignBase->account_status = $status;
-            $assignBase->status = $status;
             $assignBase->account_remarks = $remarks;
             if ($updaterId) {
                 $assignBase->account_updated_by = $updaterId;
@@ -2269,14 +2420,18 @@ class AuthApiController extends Controller
                 $u = User::find($updaterId);
                 if ($u) $updaterName = $u->name;
             }
-            Notification::create([
+            $notificationData = [
                 'assign_base_id'    => $assignBase->id,
                 'emp_id'            => $updaterId ?? $assignBase->emp_id,
                 'notification_date' => $now->toDateString(),
                 'notification_time' => $now->toTimeString(),
                 'remarks'           => 'Account status: ' . $status . ($remarks ? ' (' . $remarks . ')' : ''),
                 'status'            => $status,
-            ]);
+            ];
+            if (Schema::hasColumn('notifications', 'user_id')) {
+                $notificationData['user_id'] = $updaterId ?? $assignBase->emp_id;
+            }
+            Notification::create($notificationData);
 
             return response()->json([
                 'status'  => true,

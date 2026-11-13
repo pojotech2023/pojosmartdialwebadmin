@@ -114,6 +114,10 @@ class CalendarController extends Controller
                     }
                     $notifDatetime = Carbon::parse($dateStr . ' ' . $time24);
 
+                    if ($notifDatetime->lte($now)) {
+                        continue;
+                    }
+
                     $isDue = false;
                     $isSent = (bool) $n->is_sent;
 

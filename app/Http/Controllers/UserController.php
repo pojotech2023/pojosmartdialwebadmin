@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -40,7 +39,7 @@ class UserController extends Controller
             'mobile'   => trim($request->mobile),
             'role'     => $role,
             'email'    => $request->filled('email') ? trim($request->email) : null,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
         ]);
 
         return redirect()->route('employees.index')->with('success', "Employee created successfully with role '{$role}'");
@@ -77,7 +76,7 @@ class UserController extends Controller
 
         // Update password only if filled
         if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
+            $user->password = $request->password;
         }
 
         $user->save(); // 🔥 THIS LINE IS CRITICAL
@@ -118,4 +117,3 @@ class UserController extends Controller
     }
 
 }
-

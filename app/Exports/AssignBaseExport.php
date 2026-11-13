@@ -7,10 +7,12 @@ use Maatwebsite\Excel\Concerns\FromArray;
 class AssignBaseExport implements FromArray
 {
     protected $data;
+    protected bool $isAccount;
 
-    public function __construct($data)
+    public function __construct($data, bool $isAccount = false)
     {
         $this->data = $data;
+        $this->isAccount = $isAccount;
     }
 
     public function array(): array
@@ -24,7 +26,7 @@ class AssignBaseExport implements FromArray
             'Customer Name',
             'Company Name',
             'Product Type',
-            'Status',
+            $this->isAccount ? 'Account Status' : 'Telecaller Status',
             'Mobile',
             'Date',
             'Login Date',
@@ -63,7 +65,9 @@ class AssignBaseExport implements FromArray
                 $row->customer_name,
                 $row->company_name,
                 $row->product->name ?? $row->product_type ?? '',
-                $row->status,
+                $this->isAccount
+                    ? ($row->account_status ?? $row->leadDetail?->account_status ?? 'NEW')
+                    : $row->status,
                 $row->mobile,
                 $row->assign_date ? $row->assign_date->format('d/m/Y') : '',
                 $loan ? ($loan->login_date ? \Carbon\Carbon::parse($loan->login_date)->format('d/m/Y') : '') : '',

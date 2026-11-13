@@ -63,11 +63,13 @@
     {{-- Password (optional) --}}
     <label class="form-label">New Password (optional)</label>
     <input type="password" name="password"
+           minlength="6" autocomplete="new-password"
            placeholder="Leave blank to keep current password">
 
     {{-- Confirm Password --}}
     <label class="form-label">Confirm Password</label>
     <input type="password" name="password_confirmation"
+           minlength="6" autocomplete="new-password"
            placeholder="Confirm new password">
 
     <div style="margin-top:15px">

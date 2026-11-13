@@ -64,7 +64,7 @@ class User extends Authenticatable
 
     public function isAccount(): bool
     {
-        return strtolower($this->role ?? '') === 'account';
+        return in_array(strtolower(trim($this->role ?? '')), ['account', 'accounts'], true);
     }
 
     public function isTelecaller(): bool

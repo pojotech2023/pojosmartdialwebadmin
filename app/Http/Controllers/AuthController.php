@@ -9,6 +9,7 @@ use App\Models\LeadDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use App\Exports\AssignBaseExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
@@ -136,7 +137,9 @@ class AuthController extends Controller
             $query->where('product_id', $request->product_id);
         }
 
-        if ($request->filled('status')) {
+        if ($isAccount && $request->filled('account_status')) {
+            $query->where('account_status', $request->account_status);
+        } elseif (!$isAccount && $request->filled('status')) {
             $query->where('status', $request->status);
         }
 
@@ -195,6 +198,7 @@ class AuthController extends Controller
                 'mobile'            => $n->assignBase?->mobile ?? '—',
                 'notification_date' => $n->notification_date ? $n->notification_date->format('d/m/Y') : '—',
                 'notification_time' => $n->notification_time ?? '—',
+                'notification_status' => $n->status ?? '',
                 'remarks'           => $n->remarks ?? '',
                 'is_sent'           => $n->is_sent,
                 'datetime_epoch'    => $notifDatetime->timestamp,
@@ -307,7 +311,9 @@ class AuthController extends Controller
             $query->where('product_id', $request->product_id);
         }
 
-        if ($request->filled('status') && $request->status != '') {
+        if ($currentUser?->isAccount() && $request->filled('account_status')) {
+            $query->where('account_status', $request->account_status);
+        } elseif (!$currentUser?->isAccount() && $request->filled('status') && $request->status != '') {
             $query->where('status', $request->status);
         }
 
@@ -323,7 +329,7 @@ class AuthController extends Controller
 
         $fileName = 'dashboard_data_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
 
-        return Excel::download(new AssignBaseExport($data), $fileName);
+        return Excel::download(new AssignBaseExport($data, $currentUser?->isAccount() ?? false), $fileName);
     }
 
     /**
@@ -340,6 +346,20 @@ class AuthController extends Controller
                     'status'  => false,
                     'message' => 'Lead not found',
                 ], 404);
+            }
+
+            $currentUser = Auth::user();
+            if ($currentUser && !$currentUser->isAdmin()) {
+                $ownsLead = $currentUser->isAccount()
+                    ? $lead->assigned_to == $currentUser->id
+                    : ($lead->emp_id == $currentUser->id || $lead->assigned_to == $currentUser->id);
+
+                if (!$ownsLead) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'Unauthorized to view this lead',
+                    ], 403);
+                }
             }
 
             $leadDetail = $lead->leadDetail;
@@ -404,11 +424,11 @@ class AuthController extends Controller
                         'price_raw'        => $leadDetail?->price ?? '',
                         'gst'              => $leadDetail?->gst ?? 'N',
                         'gst_no'           => $leadDetail?->gst_no ?? '',
-                        'account_status'   => $leadDetail?->account_status ?? $lead->account_status ?? $lead->status ?? 'NEW',
+                        'account_status'   => $lead->account_status ?? $leadDetail?->account_status ?? 'NEW',
                         'account_remarks'  => $leadDetail?->account_remarks ?? $lead->account_remarks ?? '',
                     ],
                     'account_status_details' => [
-                        'account_status'  => $leadDetail?->account_status ?? $lead->account_status ?? $lead->status ?? 'NEW',
+                        'account_status'  => $lead->account_status ?? $leadDetail?->account_status ?? 'NEW',
                         'account_remarks' => $leadDetail?->account_remarks ?? $lead->account_remarks ?? '',
                         'updated_by'      => $lead->accountUpdatedBy?->name ?? $leadDetail?->accountUpdatedBy?->name ?? $lead->assignedUser?->name ?? '—',
                         'updated_at'      => ($lead->account_updated_at ?? $leadDetail?->account_updated_at) ? Carbon::parse($lead->account_updated_at ?? $leadDetail->account_updated_at)->format('d/m/Y h:i A') : null,
@@ -439,64 +459,66 @@ class AuthController extends Controller
     public function updateLeadStatus(Request $request)
     {
         try {
+            $currentUser = Auth::user();
+            if (!$currentUser->isAccount()) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Only Account users can update account status',
+                ], 403);
+            }
+
             $request->validate([
                 'assign_base_id' => 'required|integer|exists:assign_bases,id',
-                'status'         => 'required|string',
+                'account_status' => 'required|string|in:NEW,IN PROGRESS,QUOTATION SHARED,CLIENT REPLIED',
+                'account_remarks' => 'nullable|string|max:5000',
             ]);
 
-            $currentUser = Auth::user();
             $lead = AssignBase::findOrFail($request->assign_base_id);
 
-            // If account user, verify lead ownership
-            if ($currentUser && !$currentUser->isAdmin()) {
-                if ($lead->assigned_to != $currentUser->id && $lead->emp_id != $currentUser->id) {
-                    return response()->json([
-                        'status'  => false,
-                        'message' => 'Unauthorized to update this lead',
-                    ], 403);
-                }
+            if ($lead->assigned_to != $currentUser->id) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Only the assigned Account user can update this lead',
+                ], 403);
             }
 
-            $status = strtoupper(trim($request->status));
-            $remarks = $request->input('account_remarks', $request->input('remarks', ''));
+            $status = $request->account_status;
+            $remarks = $request->exists('account_remarks')
+                ? trim((string) $request->input('account_remarks'))
+                : (string) ($lead->account_remarks ?? '');
             $now = Carbon::now();
 
-            $lead->status = $status;
             $lead->account_status = $status;
-            if ($remarks !== '') {
-                $lead->account_remarks = $remarks;
-            }
-            if ($currentUser) {
-                $lead->account_updated_by = $currentUser->id;
-            }
+            $lead->account_remarks = $remarks;
+            $lead->account_updated_by = $currentUser->id;
             $lead->account_updated_at = $now;
             $lead->save();
 
             // Sync with lead_details table
             $leadDetailData = [
                 'account_status'     => $status,
-                'account_updated_by' => $currentUser?->id,
+                'account_remarks'    => $remarks,
+                'account_updated_by' => $currentUser->id,
                 'account_updated_at' => $now,
             ];
-            if ($remarks !== '') {
-                $leadDetailData['account_remarks'] = $remarks;
-            }
             LeadDetail::updateOrCreate(
                 ['assign_base_id' => $lead->id],
                 $leadDetailData
             );
 
             // Track in notifications remarks
-            if ($currentUser) {
-                Notification::create([
-                    'assign_base_id'    => $lead->id,
-                    'emp_id'            => $currentUser->id,
-                    'notification_date' => $now->toDateString(),
-                    'notification_time' => $now->toTimeString(),
-                    'remarks'           => 'Account status set to ' . $status . ($remarks ? ' (' . $remarks . ')' : '') . ' by ' . $currentUser->name,
-                    'status'            => $status,
-                ]);
+            $notificationData = [
+                'assign_base_id'    => $lead->id,
+                'emp_id'            => $currentUser->id,
+                'notification_date' => $now->toDateString(),
+                'notification_time' => $now->toTimeString(),
+                'remarks'           => 'Account status set to ' . $status . ($remarks ? ' (' . $remarks . ')' : '') . ' by ' . $currentUser->name,
+                'status'            => $status,
+            ];
+            if (Schema::hasColumn('notifications', 'user_id')) {
+                $notificationData['user_id'] = $currentUser->id;
             }
+            Notification::create($notificationData);
 
             return response()->json([
                 'status'  => true,
@@ -507,10 +529,16 @@ class AuthController extends Controller
                     'status'          => $lead->status,
                     'account_status'  => $lead->account_status,
                     'account_remarks' => $lead->account_remarks,
-                    'updated_by'      => $currentUser?->name ?? 'Account User',
+                    'updated_by'      => $currentUser->name,
                     'updated_at'      => $now->format('d/m/Y h:i A'),
                 ],
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => $e->validator->errors()->first(),
+                'errors'  => $e->validator->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,
